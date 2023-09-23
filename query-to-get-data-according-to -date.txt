@@ -1,0 +1,5 @@
+-- database: d:\My programs\Swapnil\Data_Visual\streamlit\database\personal.db
+
+-- Use the ▷ button in the top right corner to run the entire file.
+
+SELECT * FROM "Personal" where Date BETWEEN date('2023-01-01') AND date('2023-08-01');

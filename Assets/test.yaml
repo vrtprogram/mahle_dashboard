@@ -1,0 +1,13 @@
+credentials:
+  usernames:
+    admin:
+      email: admin
+      name: admin
+      password: $2b$12$92TMSFBvT2Ie8rzBmwxAiukWPr6jdewIRASSpHkV.8Jfo5TG8J5rW  # To be replaced with hashed password
+cookie:
+  expiry_days: 50
+  key: some_signature_key # Must be string
+  name: some_cookie_name
+preauthorized:
+  emails:
+  - melsby@gmail.com
