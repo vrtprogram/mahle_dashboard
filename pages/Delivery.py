@@ -114,7 +114,12 @@ def main():
             # pass
         with colb:
             # pass
-            fig2 = px.line(df, x='Date', y=['TARGET', 'ACTUAL'], height=700, width=600, title="Actual Vs Target")
+            fig2 = px.line(df, x='Date', y=['TARGET', 'ACTUAL'], height=700, width=600, title="Actual Vs Target",
+                           color_discrete_map={
+                               'Target': "#456987",
+                               'Actual': "#147852"
+                           })
+            fig2.layout.template = "presentation"
             st.plotly_chart(fig2, width=100)
 
     func()

@@ -5,17 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="53500316-f4ca-4ed5-a2fb-debe8ee39ab2" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.streamlit/config.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pages/DeliveryDaily.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pages/GeneralInfo.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pages/PersonalDaily.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pages/Quality.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pages/QualityDaily.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pages/SafetyDaily.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pages/problemSolving.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.streamlit/config.toml" beforeDir="false" afterPath="$PROJECT_DIR$/.streamlit/config.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/App.py" beforeDir="false" afterPath="$PROJECT_DIR$/App.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pages/Data.py" beforeDir="false" afterPath="$PROJECT_DIR$/pages/Data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/database/delivery.db" beforeDir="false" afterPath="$PROJECT_DIR$/database/delivery.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pages/Delivery.py" beforeDir="false" afterPath="$PROJECT_DIR$/pages/Delivery.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
