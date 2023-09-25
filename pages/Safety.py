@@ -1,3 +1,4 @@
+
 """
 This is the property of VR Technologies please take permission before redistribution.
 Author@ Swapnil Diwakar
@@ -17,7 +18,7 @@ from streamlit_lottie import st_lottie
 conn = sqlite3.connect("database/safety.db")
 cur = conn.cursor()
 df = pd.read_sql_query("Select * From Safety ORDER BY date desc limit 40", conn)
-print(df)
+# print(df)
 # ['TIME_STAMP', 'DATE', 'EVENT', 'LOCATION', 'STATUS']
 # -------------------------------------------------
 
@@ -72,7 +73,7 @@ def main():
         with col1:
             total_event = {}
             for i in df['DATE']:
-                print(i)
+                # print(i)
                 cur.execute(f"SELECT COUNT(*) FROM SAFETY WHERE DATE = '{i}'")
                 value = cur.fetchall()
                 no_of_event = value[0][0]

@@ -13,19 +13,19 @@ match selected:
     case 'Delivery':
         conn = sqlite3.connect("database/delivery.db")
         df = pd.read_sql_query(f'Select * from delivery where Date Between "{from_date}" and "{to_date} order by date desc"', conn)
-        print(df)
+        # print(df)
     case 'Personal':
         conn = sqlite3.connect("database/personal.db")
         df = pd.read_sql_query(f'Select * from personal where Date Between "{from_date}" and "{to_date}"', conn)
-        print(df)
+        # print(df)
     case 'Quality':
         conn = sqlite3.connect("database/quality.db")
         df = pd.read_sql_query(f'Select * from quality where Date Between "{from_date}" and "{to_date}"', conn)
-        print(df)
+        # print(df)
     case 'Safety':
         conn = sqlite3.connect("database/safety.db")
         df = pd.read_sql_query(f'Select * from safety where Date Between "{from_date}" and "{to_date}"', conn)
-        print(df)
+        # print(df)
 
 with st.container():
     if selected != '':
