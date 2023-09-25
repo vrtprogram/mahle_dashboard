@@ -315,4 +315,4 @@ if authentication_status:
                     st._rerun()
 
     if selected == '':
-        annotated_text(("Welcome to Database Manager , You can Update the database here !!!", "", "purple"))
+        annotated_text(("Welcome to Database Manager , You can Update the database here !!!", "", "green"))

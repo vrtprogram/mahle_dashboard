@@ -1,0 +1,10 @@
+[theme]
+primaryColor="#793fdf"
+backgroundColor="#7091f5"
+secondaryBackgroundColor="#fffd8c"
+textColor="#000000"
+font="monospace"
+
+
+[server]
+port = 7070
