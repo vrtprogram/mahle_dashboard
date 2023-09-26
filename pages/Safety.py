@@ -135,21 +135,23 @@ def main():
     df_new = pd.read_sql_query("""SELECT * FROM SAFETY WHERE STATUS='Open' ORDER BY TIME_STAMP DESC """, conn)
     st.table(df_new)
 
-    df_test = pd.read_sql_query("""
-                SELECT
-                    strftime('%Y', timestamp_column) AS year,
-                    strftime('%W', timestamp_column) AS week_number,
-                    MIN(timestamp_column) AS start_of_week,
-                    MAX(timestamp_column) AS end_of_week
-                FROM
-                    SAFETY
-                WHERE
-                    strftime('%w', timestamp_column) = '1' -- '1' represents Monday in SQLite
-                GROUP BY
-                    year, week_number
-                ORDER BY
-                    year DESC, week_number DESC;
-    """)
+    # df_test = pd.read_sql_query("""
+    #             SELECT
+    #                 strftime('%Y', time_stamp) AS year,
+    #                 strftime('%W', time_stamp) AS week_number,
+    #                 MIN(time_stamp) AS start_of_week,
+    #                 MAX(time_stamp) AS end_of_week
+    #             FROM
+    #                 SAFETY
+    #             WHERE
+    #                 strftime('%w', time_stamp) = '1' -- '1' represents Monday in SQLite
+    #             GROUP BY
+    #                 year, week_number
+    #             ORDER BY
+    #                 year DESC, week_number DESC;
+    # """, conn
+    #                             )
+    # print(df_test)
 
 
 if __name__ == "__main__":
