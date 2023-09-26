@@ -1,5 +1,4 @@
-
-"""
+﻿"""
 This is the property of VR Technologies please take permission before redistribution.
 Author@ Swapnil Diwakar
 EmailId@ Diwakarswapnil@gmail.com
@@ -11,27 +10,37 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import plotly.express as px
-import json
-from streamlit_lottie import st_lottie
+from datetime import datetime
+
+# import json
+# from streamlit_lottie import st_lottie
 
 # ----------- Initializing Database --------------#
 conn = sqlite3.connect("database/safety.db")
+month = datetime.now().month
+year = datetime.now().year
 cur = conn.cursor()
-df = pd.read_sql_query("Select * From Safety ORDER BY date desc limit 40", conn)
-# print(df)
-# ['TIME_STAMP', 'DATE', 'EVENT', 'LOCATION', 'STATUS']
+if month < 10:
+    df = pd.read_sql_query(f"Select * From Safety WHERE strftime('%Y-%m', date) = '{year}-0{month}' ", conn)
+else:
+    df = pd.read_sql_query(f"Select * From Safety WHERE strftime('%Y-%m', date) = '{year}-{month}' AND strftime('%Y', date) = '{year} ", conn)
+
+closed = 0
+for item in df["STATUS"]:
+    if item == "Close" or item == "Closed" or item == "close" or item == 'closed' :
+        closed += 1
 # -------------------------------------------------
 
 # -------------------- Setting Up Page layout --------------------------#
-st.set_page_config(layout="wide", page_title="Safety", initial_sidebar_state="collapsed")
+st.set_page_config(layout="wide", page_title="Unsafe Practices Tracking", initial_sidebar_state="collapsed")
 
 st.markdown("""
         <style>
                .block-container {
-                    padding-top: 0rem;
+                    padding-top: 20px;
                     padding-bottom: 0rem;
-                    padding-left: 5rem;
-                    padding-right: 5rem;
+                    padding-left: 10px;
+                    padding-right: 10px;
                 }
         </style>
         """, unsafe_allow_html=True)
@@ -42,31 +51,38 @@ def main():
             <style>
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
+            .stDeployButton{visibility: hidden}
             </style>
             """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-    colimg1, colimg2, colimg3 = st.columns((1.75, 1, 9), gap="small")
-    with colimg1:
-        st.write("")
-        st.write("")
-        st.write("")
-        st.write("")
-        st.image("resources/logo.png")
-    with colimg3:
-        st.write("")
-        st.write("")
-        st.markdown("""<u><div style="font-size:450%;color:white"> VR Technologies</h1></u>""", unsafe_allow_html=True)
-
-    col1, col2 = st.columns((7, 5), gap="small")
-    with col1:
-        st.write("""## <div style="font-size:250%;color:green"><u>Safety Dashboard """, unsafe_allow_html=True)
-        with col2:
-            with open("Assets/safty.json", 'r') as f:
-                data = json.load(f)
-            st_lottie(data, speed=0.3, loop=True, height=350, width=350)
-    # ----------------------------------------------------------------------------
+    # -----------------------------------------------------
+    st.markdown(
+        """
+        <center>
+         <div style="background-color: blue; font-family:fantasy">
+            <i><u>
+                <h1>
+                    Unsafe Practice Tracking
+                </h1>
+            </u></i>
+        </div>
+        </center>
+        """,
+        unsafe_allow_html=True
+    )
 
     st.markdown("____")
+    col_indices_1, col_indices_2, col_indices_3 = st.columns((0.5, 2, 0.5))
+
+    with col_indices_2:
+        col_indices_A, col_indices_B, col_indices_C = st.columns((2, 2, 2))
+        with col_indices_A:
+            st.metric("Unsafe Practices", len(df))
+        with col_indices_B:
+            st.metric("Unsafe Practices Closed", closed)
+        with col_indices_C:
+            st.metric("Closure Percentage", int((closed / len(df))))
+    st.markdown("---")
     st.markdown("## Unsafe Practices Trend :")
     with st.container():
         col1, col2 = st.columns((8, 8), gap="small")
@@ -88,17 +104,52 @@ def main():
             new_event_df['NO. OF EVENTS'] = total_event.values()
             # print(new_event_df)
 
-            fig = px.bar(new_event_df, x='DATE', y='NO. OF EVENTS',
-                         height=700, width=500, title="Daily Trends", template='plotly_dark')
+            fig = px.bar(new_event_df, x='DATE', y='NO. OF EVENTS', title="Monthly Trends", template='plotly_dark')
             st.plotly_chart(fig)
         with col2:
-            fig2 = px.line(new_event_df, x="DATE", y='NO. OF EVENTS', height=700, width=500, template='plotly_dark')
+            new_df = pd.DataFrame()
+            lst = []
+            new_df['Month'] = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+            for i in range(0, 12):
+                if i < 10:
+                    df_year = pd.read_sql_query(f"Select * From Safety WHERE strftime('%m', date) = '0{i+1}' ", conn)
+                else:
+                    df_year = pd.read_sql_query(f"Select * From Safety WHERE strftime('%m', date) = '{i+1}' ", conn)
+                lst.append(len(df_year))
+
+            new_df['No. Of Events'] = lst
+
+            fig2 = px.bar(new_df, x='Month', y='No. Of Events', title="Yearly Trends")
             st.plotly_chart(fig2)
+
+    st.markdown("""
+        <style>
+        .col_heading{
+            background:"green";
+        }
+        
+    """, unsafe_allow_html=True)
 
     st.markdown("___")
     st.markdown("## Latest Events :")
-    df_new = df[['DATE', 'EVENT', 'LOCATION', 'STATUS']]
+    df_new = pd.read_sql_query("""SELECT * FROM SAFETY WHERE STATUS='Open' ORDER BY TIME_STAMP DESC """, conn)
     st.table(df_new)
+
+    df_test = pd.read_sql_query("""
+                SELECT
+                    strftime('%Y', timestamp_column) AS year,
+                    strftime('%W', timestamp_column) AS week_number,
+                    MIN(timestamp_column) AS start_of_week,
+                    MAX(timestamp_column) AS end_of_week
+                FROM
+                    SAFETY
+                WHERE
+                    strftime('%w', timestamp_column) = '1' -- '1' represents Monday in SQLite
+                GROUP BY
+                    year, week_number
+                ORDER BY
+                    year DESC, week_number DESC;
+    """)
 
 
 if __name__ == "__main__":

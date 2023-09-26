@@ -39,13 +39,6 @@ st.markdown("""
         </style>
         """, unsafe_allow_html=True)
 
-#colimg1, spacer, colimg2 = st.columns((2, 4, 2), gap="small")
-#with colimg1:
-#    st.image("resources\Mahle.png")
-#with spacer:
-#    st.write("")
-#with colimg2:
- #   st.image("resources\ANAND.png")
 # --------------------------------------------------------------#
 with open('Assets/test.yaml') as file:
     config = yaml.load(file, Loader=SafeLoader)
@@ -65,7 +58,7 @@ if authentication_status:
         authenticator.logout("Logout")
     st.write("<H1>Select From Below Options To Enter Data", unsafe_allow_html=True)
 
-    options = ['', 'Personal', 'Delivery', 'Unsafe Incidences','Unsafe Practices Tracking' ,'Quality',]
+    options = ['', 'Personal', 'Delivery', 'Unsafe Incidences', 'Unsafe Practices Tracking', 'Quality', ]
 
     selected = st.selectbox('Menu', options=options)
     # -------Data Entry Pages --------------------------------#
@@ -81,7 +74,7 @@ if authentication_status:
         if selected == 'LOG':
             with st.form("Personal Data", clear_on_submit=False):
                 date = st.date_input("Date")
-                col1, col2 = st.columns((1, 1),gap="small")
+                col1, col2 = st.columns((1, 1), gap="small")
                 with col1:
                     total_manpower_req = st.number_input('Planned Manpower Required', format='%d', step=1, min_value=0)
                 with col2:
@@ -145,9 +138,7 @@ if authentication_status:
                     cur.execute(f"DELETE FROM Personal WHERE Time_Stamp = '{time_stamp}'")
                     conn.commit()
                     st.success("Success ")
-                    st._rerun()
-
-
+                    st.rerun()
 
     # ***************** Delivery ****************************
     if selected == 'Delivery':
@@ -202,10 +193,10 @@ if authentication_status:
                     cur.execute(f"DELETE FROM Delivery WHERE Time_Stamp = '{time_stamp}'")
                     conn.commit()
                     st.success("Success ")
-                    st._rerun()
+                    st.rerun()
 
     # ********************** Unsafe Incidence **********************#
-    if selected == 'Safety':
+    if selected == 'Unsafe Incidences':
         conn = sqlite3.connect('database/safety.db')
         cur = conn.cursor()
         # PROVIDING OPTIONS
@@ -218,21 +209,26 @@ if authentication_status:
             if no_event > 0:
                 with st.form("safety"):
                     date = st.date_input("Date")
-                    col1, col2, col3 = st.columns((2, 2, 2))
+                    col1, col2, col3, col4 = st.columns((2, 2, 2, 2))
                     for i in range(0, no_event):
                         with  col1:
-                            st.text_input("Observations", key=f"event{i}")
+                            st.text_input("Event", key=f"event{i}")
                         with col2:
                             st.text_input("Location", key=f"location{i}")
                         with col3:
                             st.selectbox("Current Status", options=['Open', 'Closed'], key=f"status{i}")
+                        with col4:
+                            st.selectbox("Event Type",
+                                         options=['N/A','Recordable Lost Time Injury', 'Recordable Accident', 'FirstAid',
+                                                  'Near Miss',"Fire", 'No Incident', 'Plant OFF'], key=f'Event_Type{i}')
 
                     submit = st.form_submit_button("Save")
-
+                    # CATEGORY
                     if submit:
                         for i in range(0, no_event):
                             cur.execute(
-                                f"""INSERT INTO SAFETY VALUES ("{datetime.now()}","{date}","{st.session_state[f'event{i}']}","{st.session_state[f'location{i}']}","{st.session_state[f'status{i}']}")""")
+                                f"""INSERT INTO SAFETY VALUES ("{datetime.now()}","{date}","{st.session_state[f'event{i}']}","{st.session_state[f'Event_Type{i}']}",
+                                "{st.session_state[f'location{i}']}","{st.session_state[f'status{i}']}")""")
                             conn.commit()
                         st.success("Data Saved")
         if selected == 'UPDATE':
@@ -258,7 +254,65 @@ if authentication_status:
                     cur.execute(f"DELETE FROM Safety WHERE Time_Stamp = '{time_stamp}'")
                     conn.commit()
                     st.success("Success ")
-                    st._rerun()
+                    st.rerun()
+
+    # ****************** Unsafe Practices **************** #
+    if selected == 'Unsafe Practices Tracking':
+        conn = sqlite3.connect('database/safety.db')
+        cur = conn.cursor()
+        # PROVIDING OPTIONS
+        option = ["", 'UPDATE', 'LOG']
+        selected = st.selectbox("Select Action to Perform", options=option, index=0)
+
+        # ACTIONS ACCORDING TO THE SELECTED OPTION
+        if selected == 'LOG':
+            no_event = st.number_input("Enter number of events to log", step=1)
+            if no_event > 0:
+                with st.form("safety"):
+                    date = st.date_input("Date")
+                    col1, col2, col3, col4 = st.columns((2, 2, 2, 2))
+                    for i in range(0, no_event):
+                        with col1:
+                            st.text_input("Observations", key=f"event{i}")
+                        with col2:
+                            st.text_input("Location", key=f"location{i}")
+                        with col3:
+                            st.text_input("Responsibility", key=f"responsibility{i}")
+                        with col4:
+                            st.selectbox("Current Status", options=['Open', 'Closed'], key=f"status{i}")
+
+                    submit = st.form_submit_button("Save")
+
+                    if submit:
+                        for i in range(0, no_event):
+                            cur.execute(
+                                f"""INSERT INTO "UNSAFE PRACTICES" VALUES ("{datetime.now()}","{date}","{st.session_state[f'event{i}']}","{st.session_state[f'location{i}']}","{st.session_state[f"responsibility{i}"]}","{st.session_state[f'status{i}']}")""")
+                            conn.commit()
+                        st.success("Data Saved")
+        if selected == 'UPDATE':
+            date = st.date_input("Select date to update the status")
+            if date is not None:
+                st.write(f"The Selected date is {date}")
+                df = pd.read_sql_query(f'Select * from "UNSAFE PRACTICES" where date = "{date}"', conn)
+                edited_df = st.data_editor(df, width=1600)
+                # print(edited_df)
+                update = st.button("Data Update")
+                if update:
+                    try:
+                        for _, row in edited_df.iterrows():
+                            cur.execute(
+                                f'UPDATE SAFETY SET STATUS = "{row["STATUS"]}",EVENT = "{row["EVENT"]}",LOCATION = "{row["LOCATION"]}"  WHERE TIME_STAMP = "{row["TIME_STAMP"]}" ')
+                            conn.commit()
+                        st.success("Data Updated")
+                    except Exception as e:
+                        st.write(e)
+                time_stamp = st.text_input("Enter The Time Stamp To Delete")
+                button = st.button("Delete Entry")
+                if button:
+                    cur.execute(f"DELETE FROM Safety WHERE Time_Stamp = '{time_stamp}'")
+                    conn.commit()
+                    st.success("Success ")
+                    st.rerun()
 
     # ******************* Quality *********************** #
     if selected == 'Quality':
@@ -312,7 +366,7 @@ if authentication_status:
                     cur.execute(f"DELETE FROM Personal WHERE Time_Stamp = '{time_stamp}'")
                     conn.commit()
                     st.success("Success ")
-                    st._rerun()
+                    st.rerun()
 
     if selected == '':
         annotated_text(("Welcome to Database Manager , You can Update the database here !!!", "", "green"))
