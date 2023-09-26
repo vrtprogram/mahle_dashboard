@@ -65,7 +65,7 @@ if authentication_status:
         authenticator.logout("Logout")
     st.write("<H1>Select From Below Options To Enter Data", unsafe_allow_html=True)
 
-    options = ['', 'Personal', 'Delivery', 'Safety', 'Quality']
+    options = ['', 'Personal', 'Delivery', 'Unsafe Incidences','Unsafe Practices Tracking' ,'Quality',]
 
     selected = st.selectbox('Menu', options=options)
     # -------Data Entry Pages --------------------------------#
@@ -204,7 +204,7 @@ if authentication_status:
                     st.success("Success ")
                     st._rerun()
 
-    # ********************** Safety **********************#
+    # ********************** Unsafe Incidence **********************#
     if selected == 'Safety':
         conn = sqlite3.connect('database/safety.db')
         cur = conn.cursor()
@@ -221,7 +221,7 @@ if authentication_status:
                     col1, col2, col3 = st.columns((2, 2, 2))
                     for i in range(0, no_event):
                         with  col1:
-                            st.text_input("Event", key=f"event{i}")
+                            st.text_input("Observations", key=f"event{i}")
                         with col2:
                             st.text_input("Location", key=f"location{i}")
                         with col3:
