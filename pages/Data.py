@@ -195,8 +195,8 @@ if authentication_status:
                     st.success("Success ")
                     st.rerun()
 
-    # ********************** Unsafe Incidence **********************#
-    if selected == 'Unsafe Incidences':
+    # ********************** Unsafe Practice Tracking **********************#
+    if selected == 'Unsafe Practices Tracking':
         conn = sqlite3.connect('database/safety.db')
         cur = conn.cursor()
         # PROVIDING OPTIONS
@@ -209,33 +209,32 @@ if authentication_status:
             if no_event > 0:
                 with st.form("safety"):
                     date = st.date_input("Date")
-                    col1, col2, col3, col4 = st.columns((2, 2, 2, 2))
+                    col1, col2, col3, col4, col5 = st.columns((2, 2, 2, 2, 2))
                     for i in range(0, no_event):
-                        with  col1:
-                            st.text_input("Event", key=f"event{i}")
+                        with col1:
+                            st.text_input("Observation", key=f"event{i}")
                         with col2:
                             st.text_input("Location", key=f"location{i}")
                         with col3:
-                            st.selectbox("Current Status", options=['Open', 'Closed'], key=f"status{i}")
+                            st.text_input("Responsibility", key=f"responsibility{i}")
                         with col4:
-                            st.selectbox("Event Type",
-                                         options=['N/A','Recordable Lost Time Injury', 'Recordable Accident', 'FirstAid',
-                                                  'Near Miss',"Fire", 'No Incident', 'Plant OFF'], key=f'Event_Type{i}')
+                            st.text_input("Action Taken", key=f"action{i}")
+                        with col5:
+                            st.selectbox("Current Status", options=['Open', 'Closed'], key=f"status{i}")
 
                     submit = st.form_submit_button("Save")
-                    # CATEGORY
                     if submit:
                         for i in range(0, no_event):
                             cur.execute(
-                                f"""INSERT INTO SAFETY VALUES ("{datetime.now()}","{date}","{st.session_state[f'event{i}']}","{st.session_state[f'Event_Type{i}']}",
-                                "{st.session_state[f'location{i}']}","{st.session_state[f'status{i}']}")""")
+                                f"""INSERT INTO 'UNSAFE PRACTICES TRACKING' VALUES ("{datetime.now()}","{date}","{st.session_state[f'event{i}']},')",
+                                "{st.session_state[f'location{i}']}","{st.session_state[f'responsibility{i}']}" ,"{st.session_state[f'action{i}']}","{st.session_state[f'status{i}']}")""")
                             conn.commit()
                         st.success("Data Saved")
         if selected == 'UPDATE':
             date = st.date_input("Select date to update the status")
             if date is not None:
                 st.write(f"The Selected date is {date}")
-                df = pd.read_sql_query(f'Select * from SAFETY where date = "{date}"', conn)
+                df = pd.read_sql_query(f"""Select * from 'UNSAFE PRACTICES TRACKING' where date = "{date}" """, conn)
                 edited_df = st.data_editor(df, width=1600)
                 # print(edited_df)
                 update = st.button("Data Update")
@@ -256,8 +255,8 @@ if authentication_status:
                     st.success("Success ")
                     st.rerun()
 
-    # ****************** Unsafe Practices **************** #
-    if selected == 'Unsafe Practices Tracking':
+    # ****************** Unsafe Incidences **************** #
+    if selected == 'Unsafe Incidences':
         conn = sqlite3.connect('database/safety.db')
         cur = conn.cursor()
         # PROVIDING OPTIONS

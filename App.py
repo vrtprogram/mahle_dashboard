@@ -3,9 +3,29 @@ import base64
 import os
 from streamlit_extras.switch_page_button import switch_page
 
+st.set_page_config(layout="wide", page_title="Welcome", initial_sidebar_state='collapsed')
+st.markdown("""
+            <style>
+                   .block-container {
+                        padding-top: 20px;
+                        padding-bottom: 1px;
+                        padding-left: 10px;
+                        padding-right: 10px;
+                    }
+                    .element-container{
+                        padding:None;
+                    }
+
+            </style>
+            <style>
+                #MainMenu {visibility: hidden;}
+                footer {visibility: hidden;}
+                .stDeployButton{visibility:hidden;}
+            </style>
+            """, unsafe_allow_html=True)
+
+
 st.cache_data()
-
-
 def main():
     # Setting up page Config.
     def get_base64_of_bin_file(bin_file) -> base64:
@@ -25,36 +45,17 @@ def main():
             '''
         return html_code
 
-    st.set_page_config(layout="wide", page_title="Welcome", initial_sidebar_state='collapsed')
-    st.markdown("""
-            <style>
-                   .block-container {
-                        padding-top: 20px;
-                        padding-bottom: 1px;
-                        padding-left: 10px;
-                        padding-right: 10px;
-                    }
-                    .element-container{
-                        padding:None;
-                    }
-                    
-            </style>
-            <style>
-                #MainMenu {visibility: hidden;}
-                footer {visibility: hidden;}
-                .stDeployButton{visibility:hidden;}
-            </style>
-            """, unsafe_allow_html=True)
+
 
     st.markdown(
         """
         <center>
-         <div style="background-color: blue; font-family:fantasy">
-            <i>
-                <h1>
+         <div>
+            <i><u>
+                <h1 style="font-size:60px;">
                     Shopfloor Management
                 </h1>
-            </i>
+            </u></i>
         </div>
         </center>
         """,
@@ -70,7 +71,7 @@ def main():
     with col1:
         col_img_A, col_img_B, col_img_C = st.columns((1, 0.2, 1))
         with col_img_A:
-            gif_html = get_img_with_href("resources/safety-s.gif", "/SafetyDaily")
+            gif_html = get_img_with_href("resources/safety-s.gif", "/SafetyFTD")
             st.markdown(gif_html, unsafe_allow_html=True)
             st.markdown(
                 """<center>
@@ -80,7 +81,7 @@ def main():
                 """, unsafe_allow_html=True
             )
             st.markdown("---")
-            gif_html = get_img_with_href("resources/Delivery-D.gif", "/DeliveryDaily")
+            gif_html = get_img_with_href("resources/Delivery-D.gif", "/DeliveryFTD")
             st.markdown(gif_html, unsafe_allow_html=True)
             st.markdown(
                 """<center>
@@ -104,21 +105,21 @@ def main():
                 """, unsafe_allow_html=True)
 
             with col_img_C:
-                gif_html = get_img_with_href("resources/p.gif", "/PersonalDaily")
+                gif_html = get_img_with_href("resources/Quality-Q.gif", "/QualityFTD")
                 st.markdown(gif_html, unsafe_allow_html=True)
                 st.markdown("""
-                <center>
-                <br>
-                <p style = "font-size:12px">Personal</p>
-                </center>
-                """, unsafe_allow_html=True)
+                       <center>
+                       <br>
+                          <p style = "font-size:12px">______ days since customer complaint. </p>
+                           </center>
+                   """, unsafe_allow_html=True)
                 st.markdown("---")
-                gif_html = get_img_with_href("resources/Quality-Q.gif", "/QualityDaily")
+                gif_html = get_img_with_href("resources/C.gif", "/CostFTD")
                 st.markdown(gif_html, unsafe_allow_html=True)
                 st.markdown("""
                     <center>
                     <br>
-               <p style = "font-size:12px">______ days since customer complaint. </p>
+               <p style = "font-size:12px">______ days since productivity target missed. </p>
                 </center>
                 """, unsafe_allow_html=True)
 
@@ -149,7 +150,7 @@ def main():
             st.markdown("<br>", unsafe_allow_html=True)
             st.image("resources/safety.png", width=50)
         with col_selector:
-            safetySelection = st.selectbox("Safety", ["", "Daily", "Monthly", "Annually"], key="safety")
+            safetySelection = st.selectbox("Safety", ["", "Safety FTD", "Unsafe Practice Tracking"], key="safety")
         col_icon, col_selector = st.columns((1, 2))
         with col_icon:
             st.markdown("<br>", unsafe_allow_html=True)
@@ -190,57 +191,57 @@ def main():
     match safetySelection:
         case "":
             pass
-        case "Daily":
-            switch_page("SafetyDaily")
-        case "Monthly":
-            switch_page("Safety")
+        case "Safety FTD":
+            switch_page("Safety FTD")
+        case "Unsafe Practice Tracking":
+            switch_page("Unsafe Practice Tracking")
         case "Annually":
-            switch_page("Safety")
+            switch_page("Unsafe Practice Tracking")
 
     match costSelection:
         case "":
             pass
         case "Daily":
-            switch_page("SafetyDaily")
+            switch_page("Cost FTD")
         case "Monthly":
-            switch_page("Safety")
+            switch_page("Unsafe Practice Tracking")
         case "Annually":
-            switch_page("Safety")
+            switch_page("Unsafe Practice Tracking")
 
     match deliverySelection:
         case "":
             pass
         case "Daily":
-            switch_page("SafetyDaily")
+            switch_page("Delivery FTD")
         case "Monthly":
-            switch_page("Safety")
+            switch_page("Unsafe Practice Tracking")
         case "Annually":
-            switch_page("Safety")
+            switch_page("Unsafe Practice Tracking")
 
     match personalSelection:
         case "":
             pass
         case "Daily":
-            switch_page("SafetyDaily")
+            switch_page("Personal FTD")
         case "Monthly":
-            switch_page("Safety")
+            switch_page("Unsafe Practice Tracking")
         case "Annually":
-            switch_page("Safety")
+            switch_page("Unsafe Practice Tracking")
     match qualitySelection:
         case "":
             pass
         case "Daily":
-            switch_page("SafetyDaily")
+            switch_page("Quality FTD")
         case "Monthly":
-            switch_page("Safety")
+            switch_page("Unsafe Practice Tracking")
         case "Annually":
-            switch_page("Safety")
+            switch_page("Unsafe Practice Tracking")
 
     match generalInfo:
         case "":
             pass
         case "General Information":
-            switch_page("generalinfo")
+            switch_page("General-Info")
 
     match problem:
         case "":
