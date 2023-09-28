@@ -48,6 +48,7 @@ def main():
     d_col1, d_col2=st.columns((1,0.3))
     with d_col2:
         on_date = st.date_input(":green[Select Date:]")
+        on_time = datetime.now().time().strftime("%H:%M")
         # st.write(on_date)
 
     new_dict=dict()
@@ -57,12 +58,33 @@ def main():
     new_dict['Near MIS']=0
     new_dict['Fire']=0
 
-    data=dict()
-    data['INCIDENT'] = "testing incident"
-    data['DATETIME'] = on_date
-    data['LOCATION'] = "Location testing"
-    data['MEDICAL']  = True
-    data['ACTION']   = "Action taken"
+    # data=dict()
+    # data['INCIDENT_1'] = "testing incident"
+    # data['DATETIME_1'] = on_date
+    # data['LOCATION_1'] = "Location testing"
+    # data['MEDICAL_1']  = True
+    # data['ACTION_1']   = "Action taken"
+
+    class data():
+        def __init__(self, incident, time, location, medical, action):
+            self.incident = incident
+            self.time = time
+            self.location = location
+            self.medical = medical
+            self.action = action
+        def show(self):
+            return f"incident{self.incident} at time {self.time} on location {self.location}, medical given {self.medical} and take action {self.action}"
+    data1 = data("incident test",on_time,"tect_loc",True,"action taken")
+    # st.write(data1.show())
+    
+    # *** get data from db ***
+    # if df["CATEGORY"] == "Recordable Lost Time":
+    #     RLT = data(df["INCIDENT"],df["TIME"],df["LOCATION"],df["MEDICAL"],df["ACTION"])
+    # if df["CATEGORY"] == "First Aid":
+    #     FA = data(df["INCIDENT"],df["TIME"],df["LOCATION"],df["MEDICAL"],df["ACTION"])
+    # if df["CATEGORY"] == "Near MIS" or "Fire":
+    #     FNM = data(df["INCIDENT"],df["TIME"],df["LOCATION"],df["MEDICAL"],df["ACTION"])
+
     # for item in df["CATEGORY"]:
     #     if item == "Recordable Lost Time":
     #         new_dict["Recordable Lost Time"] +=1
@@ -75,72 +97,201 @@ def main():
     #     if item == "Fire":
     #         new_dict["Fire"] +=1
 
-    col1,col2=st.columns((1.4,1))
+    col1,col2=st.columns((1,1.7))
     with col1:
         # date=datetime.now().date().strftime("%d-%m-%Y")
         st.subheader(f"Status as on: {on_date}",divider="rainbow")
-        colr1,colr2,colr3=st.columns((1,0.6,0.09))
-        with colr1:
-            # st.markdown(f"""<p style='font-size:1.2rem;text-align:center;background-color:skyblue; font-weight:bold;'>Daily Update: {date}</p>""",unsafe_allow_html=True)
-            # st.write(date)
-            total_event = {}
-            for i in df['DATE']:
-                # print(i)
-                cur.execute(f"SELECT COUNT(*) FROM 'UNSAFE INCIDENCES' WHERE DATE = '{i}'")
-                value = cur.fetchall()
-                no_of_event = value[0][0]
-                if i in total_event.keys():
-                    pass
-                else:
-                    total_event[i] = no_of_event
-            # print(total_event)
-            new_event_df = pd.DataFrame()
-            new_event_df['DATE'] = total_event.keys()
-            new_event_df['NO. OF EVENTS'] = total_event.values()
-            # print(new_event_df)
-            fig = px.bar(new_event_df, x='DATE', y='NO. OF EVENTS',
-                            height=450, width=350, title="Daily Trends", template='plotly_dark')
-            st.plotly_chart(fig)
-        with colr2:
-            st.write("""<div style='padding-top:10rem;'></div>""",unsafe_allow_html=True)
-            annotated_text(annotation("Rec Lost Time Injury:",color="red",background="skyblue"))
-            annotated_text(annotation("Rec Accident:",color="brown",background="skyblue"))
-            annotated_text(annotation("First Aid:",color="orange",background="skyblue"))
-            annotated_text(annotation("Near MIS:",color="yellow",background="skyblue"))
-            annotated_text(annotation("Fire:",color="blue",background="skyblue"))
-            annotated_text(annotation("No Incident:",color="green",background="skyblue"))
-        with colr3:
-            st.write("""<div style='padding-top:10rem;'></div>""",unsafe_allow_html=True)
-            st.write(f"{new_dict['Recordable Lost Time']}")
-            st.write(f"{new_dict['Recordable Accident']}")
-            st.write(f"{new_dict['First Aid']}")
-            st.write(f"{new_dict['Near MIS']}")
-            st.write(f"{new_dict['Fire']}")
-            st.write("0")
+        # st.markdown(f"""<p style='font-size:1.2rem;text-align:center;background-color:skyblue; font-weight:bold;'>Daily Update: {date}</p>""",unsafe_allow_html=True)
+        # st.write(date)
+        total_event = {}
+        for i in df['DATE']:
+            # print(i)
+            cur.execute(f"SELECT COUNT(*) FROM 'UNSAFE INCIDENCES' WHERE DATE = '{i}'")
+            value = cur.fetchall()
+            no_of_event = value[0][0]
+            if i in total_event.keys():
+                pass
+            else:
+                total_event[i] = no_of_event
+        # print(total_event)
+        new_event_df = pd.DataFrame()
+        new_event_df['DATE'] = total_event.keys()
+        new_event_df['NO. OF EVENTS'] = total_event.values()
+        print(new_event_df)
+        fig = px.bar(new_event_df, x='DATE', y='NO. OF EVENTS',
+                        height=450, width=350, title="Daily Trends", template='plotly_dark')
+        st.plotly_chart(fig)
+        # with colr2:
+        #     st.write("""<div style='padding-top:10rem;'></div>""",unsafe_allow_html=True)
+        #     annotated_text(annotation("Rec Lost Time Injury:",color="red",background="skyblue"))
+        #     annotated_text(annotation("Rec Accident:",color="brown",background="skyblue"))
+        #     annotated_text(annotation("First Aid:",color="orange",background="skyblue"))
+        #     annotated_text(annotation("Near MIS:",color="yellow",background="skyblue"))
+        #     annotated_text(annotation("Fire:",color="blue",background="skyblue"))
+        #     annotated_text(annotation("No Incident:",color="green",background="skyblue"))
+        # with colr3:
+        #     st.write("""<div style='padding-top:10rem;'></div>""",unsafe_allow_html=True)
+        #     st.write(f"{new_dict['Recordable Lost Time']}")
+        #     st.write(f"{new_dict['Recordable Accident']}")
+        #     st.write(f"{new_dict['First Aid']}")
+        #     st.write(f"{new_dict['Near MIS']}")
+        #     st.write(f"{new_dict['Fire']}")
+        #     st.write("0")
     with col2:
         st.subheader(":red[Safety Incident Details]",divider="rainbow")
         st.markdown("""
                     <style>
                         .float-container {
-                            # border: 3px solid #fff;
-                            padding: 20px;
+                            padding: 5px;
                         }
-                        .float-child {
-                            width: 50%;
+                        .float-cat {
+                            width: 15%;
+                            font-size:0.7rem;
                             float: left;
+                            height:6rem;
+                            text-align:center;
                             padding: 20px;
-                            border: 2px solid red;
+                            border: 2px solid black;
+                        }
+                        .float-inc {
+                            width: 40%;
+                            font-size:0.7rem;
+                            float: left;
+                            height:6rem;
+                            text-align:center;
+                            padding: 20px;
+                            border: 2px solid black;
+                        }
+                        .float-date {
+                            width: 15%;
+                            font-size:0.7rem;
+                            float: left;
+                            height:6rem;
+                            text-align:center;
+                            padding: 20px;
+                            border: 2px solid black;
+                        }
+                        .float-loc {
+                            width: 15%;
+                            font-size:0.7rem;
+                            float: left;
+                            height:6rem;
+                            text-align:center;
+                            padding: 20px;
+                            border: 2px solid black;
+                        }
+                        .float-med {
+                            width: 15%;
+                            font-size:0.7rem;
+                            float: left;
+                            height:6rem;
+                            text-align:center;
+                            padding: 20px;
+                            border: 2px solid black;
+                        }
+                        .float-pact {
+                            width: 20%;
+                            font-size:0.7rem;
+                            float: left;
+                            height:6rem;
+                            text-align:center;
+                            padding: 20px;
+                            border: 2px solid black;
+                        }
+                        .float-act {
+                            width: 80%;
+                            font-size:0.7rem;
+                            float: left;
+                            height:6rem;
+                            text-align:center;
+                            padding: 20px;
+                            border: 2px solid black;
                         }
                     </style>
             <div class="float-container">
-                <div class="float-child">
-                    <div class="green">Float Column 1</div>
+                <div class="float-cat" style='background-color:red;color:white;'>
+                    <div class="green">Recordable Lost Time</div>
                 </div>
-                <div class="float-child">
-                    <div class="blue">Float Column 2</div>
+                <div class="float-inc">
+                    <div class="blue">incident</div>
+                </div>
+                <div class="float-date">
+                    <div class="blue">time</div>
+                </div>
+                <div class="float-loc">
+                    <div class="blue">location</div>
+                </div>
+                <div class="float-med">
+                    <div class="blue">medical</div>
                 </div>
             </div>
-        """,unsafe_allow_html=True)
+            <div class="float-container">
+                <div class="float-pact">
+                    Implement Action
+                </div>
+                <div class="float-act">
+                    action
+                </div>
+            </div>
+
+            <div class="float-container">
+                <div class="float-cat" style='background-color:orange;'>
+                    <div class="green">First Aid</div>
+                </div>
+                <div class="float-inc">
+                    <div class="blue">incident_2</div>
+                </div>
+                <div class="float-date">
+                    <div class="blue">time_2</div>
+                </div>
+                <div class="float-loc">
+                    <div class="blue">location_2</div>
+                </div>
+                <div class="float-med">
+                    <div class="blue">medical_2</div>
+                </div>
+            </div>
+            <div class="float-container">
+                <div class="float-pact">
+                    Implement Action
+                </div>
+                <div class="float-act">
+                    action_2
+                </div>
+            </div>
+                    
+            <div class="float-container">
+                <div class="float-cat" style='background-color:yellow;'>
+                    <div>Near MIS <input type="checkbox" >
+                        Fire Det <input type="checkbox" >
+                    </div>
+                </div>
+                <div class="float-inc">
+                    <div class="blue">incident_3</div>
+                </div>
+                <div class="float-date">
+                    <div class="blue">time_3</div>
+                </div>
+                <div class="float-loc">
+                    <div class="blue">location_3</div>
+                </div>
+                <div class="float-med">
+                    <div class="blue">medical_3</div>
+                </div>
+            </div>
+            <div class="float-container">
+                <div class="float-pact">
+                    Implement Action
+                </div>
+                <div class="float-act">
+                    action_3
+                </div>
+            </div>
+        """.replace("incident",str("this incident_1 for testing"))
+        .replace("time",str(f"{on_time}"))
+        .replace("location",str("test_lock"))
+        .replace("medical",str("yes"))
+        .replace("action",str("take action and learn lession")),unsafe_allow_html=True)
         # st.markdown(f"""<div><div style='color:red; height:5rem; border:1px solid black;'>Recordable Lost Time</div><div style='height:2.5rem;border:1px solid black;'>this is incident</div></div>""",unsafe_allow_html=True)
         # st.markdown("""<input type='tel' id='phone' name='phone' placeholder='123-45-678'>""",unsafe_allow_html=True)
 
