@@ -71,7 +71,7 @@ def main():
     with col1:
         col_img_A, col_img_B, col_img_C = st.columns((1, 0.2, 1))
         with col_img_A:
-            gif_html = get_img_with_href("resources/safety-s.gif", "/SafetyFTD")
+            gif_html = get_img_with_href("resources/safety-s.gif", "/Safety_FTD")
             st.markdown(gif_html, unsafe_allow_html=True)
             st.markdown(
                 """<center>
@@ -81,7 +81,7 @@ def main():
                 """, unsafe_allow_html=True
             )
             st.markdown("---")
-            gif_html = get_img_with_href("resources/Delivery-D.gif", "/DeliveryFTD")
+            gif_html = get_img_with_href("resources/Delivery-D.gif", "/Delivery_FTD")
             st.markdown(gif_html, unsafe_allow_html=True)
             st.markdown(
                 """<center>
@@ -105,7 +105,7 @@ def main():
                 """, unsafe_allow_html=True)
 
             with col_img_C:
-                gif_html = get_img_with_href("resources/Quality-Q.gif", "/QualityFTD")
+                gif_html = get_img_with_href("resources/Quality-Q.gif", "/Quality_FTD")
                 st.markdown(gif_html, unsafe_allow_html=True)
                 st.markdown("""
                        <center>
@@ -114,7 +114,7 @@ def main():
                            </center>
                    """, unsafe_allow_html=True)
                 st.markdown("---")
-                gif_html = get_img_with_href("resources/C.gif", "/CostFTD")
+                gif_html = get_img_with_href("resources/C.gif", "/Cost_FTD")
                 st.markdown(gif_html, unsafe_allow_html=True)
                 st.markdown("""
                     <center>

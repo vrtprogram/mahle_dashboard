@@ -6,10 +6,7 @@ TIME UPDATED @
 AUTHOR @ SWAPNIL DIWAKAR
 """
 
-import sqlite3
-from datetime import datetime
 
-import pandas as pd
 # ----------- IMPORTING THE MODULES ----------#
 import streamlit as st
 import st_aggrid as table
@@ -17,6 +14,10 @@ import streamlit_authenticator as stauth
 import yaml
 from annotated_text import annotated_text
 from yaml.loader import SafeLoader
+import sqlite3
+from datetime import datetime
+from methods.test import main
+import pandas as pd
 
 #  --- Initializing Database ----
 
@@ -209,27 +210,22 @@ if authentication_status:
             if no_event > 0:
                 with st.form("safety"):
                     date = st.date_input("Date")
-                    col1, col2, col3, col4, col5 = st.columns((2, 2, 2, 2, 2))
+                    col1, col2, col3 = st.columns((1, 1, 1))
                     for i in range(0, no_event):
                         with col1:
                             st.text_input("Observation", key=f"event{i}")
                         with col2:
                             st.text_input("Location", key=f"location{i}")
                         with col3:
-                            st.text_input("Responsibility", key=f"responsibility{i}")
-                        with col4:
-                            st.text_input("Action Taken", key=f"action{i}")
-                        with col5:
                             st.selectbox("Current Status", options=['Open', 'Closed'], key=f"status{i}")
-
                     submit = st.form_submit_button("Save")
                     if submit:
                         for i in range(0, no_event):
                             cur.execute(
-                                f"""INSERT INTO 'UNSAFE PRACTICES TRACKING' VALUES ("{datetime.now()}","{date}","{st.session_state[f'event{i}']},')",
-                                "{st.session_state[f'location{i}']}","{st.session_state[f'responsibility{i}']}" ,"{st.session_state[f'action{i}']}","{st.session_state[f'status{i}']}")""")
+                                f"""INSERT INTO 'UNSAFE PRACTICES TRACKING' VALUES ("{datetime.now()}","{date}","{st.session_state[f'event{i}']},",
+                                "{st.session_state[f'location{i}']}","{st.session_state[f'status{i}']}")""")
                             conn.commit()
-                        st.success("Data Saved")
+                        st.success("Datas Saved")
         if selected == 'UPDATE':
             date = st.date_input("Select date to update the status")
             if date is not None:
@@ -255,7 +251,7 @@ if authentication_status:
                     st.success("Success ")
                     st.rerun()
 
-    # ****************** Unsafe Incidences **************** #
+    # ******************* Unsafe Incidences ***************** #
     if selected == 'Unsafe Incidences':
         conn = sqlite3.connect('database/safety.db')
         cur = conn.cursor()
@@ -265,34 +261,39 @@ if authentication_status:
 
         # ACTIONS ACCORDING TO THE SELECTED OPTION
         if selected == 'LOG':
-            no_event = st.number_input("Enter number of events to log", step=1)
+            no_event = st.number_input("Enter number of events to logS", step=1)
             if no_event > 0:
                 with st.form("safety"):
                     date = st.date_input("Date")
-                    col1, col2, col3, col4 = st.columns((2, 2, 2, 2))
+                    col1, col2, col3, col4, col5, col6, col7 = st.columns((1,1,1,1,1,1,1))
                     for i in range(0, no_event):
                         with col1:
-                            st.text_input("Observations", key=f"event{i}")
+                            st.selectbox("Category", options=['Recordable Loss Time Injury MTD', 'Recordable Accident MTD', 'First Aid MTD', 'Near MIS MTD', 'Fire MTD'], key=f"category{i}")
                         with col2:
-                            st.text_input("Location", key=f"location{i}")
+                            st.text_input("Observations", key=f"event{i}")
                         with col3:
-                            st.text_input("Responsibility", key=f"responsibility{i}")
+                            st.text_input("Location", key=f"location{i}")
                         with col4:
-                            st.selectbox("Current Status", options=['Open', 'Closed'], key=f"status{i}")
-
+                            st.text_input("Action", key=f"action{i}")
+                        with col5:
+                            st.selectbox("Medical", options=['yes', 'no'], key=f"medical{i}")
+                        with col6:
+                            st.selectbox("Status", options=['Open', 'Closed'], key=f"status{i}")
+                        with col7:
+                            st.time_input("Time", key=f"time{i}")
                     submit = st.form_submit_button("Save")
 
                     if submit:
                         for i in range(0, no_event):
                             cur.execute(
-                                f"""INSERT INTO "UNSAFE PRACTICES" VALUES ("{datetime.now()}","{date}","{st.session_state[f'event{i}']}","{st.session_state[f'location{i}']}","{st.session_state[f"responsibility{i}"]}","{st.session_state[f'status{i}']}")""")
+                                f"""INSERT INTO "UNSAFE INCIDENCES" VALUES ("{datetime.now()}","{date}","{st.session_state[f'category{i}']}","{st.session_state[f'event{i}']}","{st.session_state[f'location{i}']}","{st.session_state[f"medical{i}"]}","{st.session_state[f"action{i}"]}","{st.session_state[f'status{i}']}","{st.session_state[f'time{i}']}")""")
                             conn.commit()
                         st.success("Data Saved")
         if selected == 'UPDATE':
             date = st.date_input("Select date to update the status")
             if date is not None:
                 st.write(f"The Selected date is {date}")
-                df = pd.read_sql_query(f'Select * from "UNSAFE PRACTICES" where date = "{date}"', conn)
+                df = pd.read_sql_query(f'Select * from "UNSAFE INCIDENCES" where date = "{date}"', conn)
                 edited_df = st.data_editor(df, width=1600)
                 # print(edited_df)
                 update = st.button("Data Update")
@@ -300,7 +301,7 @@ if authentication_status:
                     try:
                         for _, row in edited_df.iterrows():
                             cur.execute(
-                                f'UPDATE SAFETY SET STATUS = "{row["STATUS"]}",EVENT = "{row["EVENT"]}",LOCATION = "{row["LOCATION"]}"  WHERE TIME_STAMP = "{row["TIME_STAMP"]}" ')
+                                f'UPDATE "UNSAFE INCIDENCES" SET CATEGORY = "{row["CATEGORY"]}",TIME = "{row["TIME"]}",MEDICAL = "{row["MEDICAL"]}",ACTION = "{row["ACTION"]}",STATUS = "{row["STATUS"]}",EVENT = "{row["EVENT"]}",LOCATION = "{row["LOCATION"]}"  WHERE TIME_STAMP = "{row["TIME_STAMP"]}" ')
                             conn.commit()
                         st.success("Data Updated")
                     except Exception as e:
@@ -308,7 +309,7 @@ if authentication_status:
                 time_stamp = st.text_input("Enter The Time Stamp To Delete")
                 button = st.button("Delete Entry")
                 if button:
-                    cur.execute(f"DELETE FROM Safety WHERE Time_Stamp = '{time_stamp}'")
+                    cur.execute(f"DELETE FROM 'UNSAFE INCIDENCES' WHERE Time_Stamp = '{time_stamp}'")
                     conn.commit()
                     st.success("Success ")
                     st.rerun()

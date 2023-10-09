@@ -1,0 +1,13 @@
+{
+    "sqlite3-editor.ui.conditionalFormatting": [
+        {
+            "database": "delivery.db",
+            "table": "OTIF",
+            "column": "DATE"
+        }
+    ],
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.autopep8"
+    },
+    "python.formatting.provider": "none"
+}
