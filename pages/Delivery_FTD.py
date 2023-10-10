@@ -1,11 +1,10 @@
-from methods.main import layout, OTIF_sale, current_updates, critcal_customer_pdi
+from methods.main import layout, current_updates, delivery_ftd
 
 layout("Delivery FTD")
 
 def main():
     current_updates()
-    OTIF_sale()
-    critcal_customer_pdi()
+    delivery_ftd()
 
 if __name__ == "__main__":
     main()

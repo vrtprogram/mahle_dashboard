@@ -1,14 +1,10 @@
-from methods.main import layout, customer_complaint_psp, ftp_rejection, current_updates
+from methods.main import layout, current_updates, quality_ftd
 
 layout("Quality FTD")
 
 def main():
-
     current_updates()
-
-    customer_complaint_psp()
-
-    ftp_rejection()
+    quality_ftd()
 
 if __name__ == "__main__":
     main()
