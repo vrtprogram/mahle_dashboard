@@ -7,11 +7,10 @@ Date@ 13/07/23
 """
 
 from methods.main import layout, unsafe_incident_tracking
+import streamlit as st
 
 # import json
 # from streamlit_lottie import st_lottie
-
-
 # -------------------------------------------------
 # print(df.columns)
 # -------------------- Setting Up Page layout --------------------------#
