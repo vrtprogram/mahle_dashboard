@@ -933,3 +933,8 @@ if authentication_status:
 
     if selected == '':
         annotated_text(("Welcome to Database Manager , You can Update the database here !!!", "", "green"))
+
+elif authentication_status == False:
+    st.error('Username/password is incorrect')
+elif authentication_status == None:
+    st.warning('Please enter your username and password')

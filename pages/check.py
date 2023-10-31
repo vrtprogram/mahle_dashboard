@@ -11,6 +11,9 @@ layout("this page only for testing")
 
 def main():
 
+    with st.expander("See explanation"):
+        st.write("this is expand")
+        
     # bar_graph("SALE PLAN VS ACTUAL")
 
     #sum data for month

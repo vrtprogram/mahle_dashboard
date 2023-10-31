@@ -35,12 +35,12 @@ def  layout(head):
         table, th, td {
             border: 1px solid black;
             padding: 10px;
-            font-size:0.6rem;
+            font-size:0.7rem;
         }
         th {
             text-align: center;
             background-color: #f2f2f2;
-            font-size:0.7rem;
+            font-size:0.8rem;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -58,7 +58,7 @@ def current_date():
     with d_col1:
         st.link_button("Home","/App")
     with d_col2:
-        date = datetime.now().date().strftime("%d-%m-%y")
+        date = datetime.datetime.now().date().strftime("%d-%m-%y")
         st.markdown(f"""<center style='padding-top:1rem;'><div style=' width:75%;background-color:lightgray;'>Date: {date}</center></div>""",unsafe_allow_html=True)
     st.markdown("___")
 #************ Body layout End ************#
@@ -778,34 +778,57 @@ def cost_ftd():
     issue_data = fetch_data("COST ISSUE")
     hp_issue = []
     oee_issue = []
-    today_data = issue_data[issue_data["DATE"] == f"{on_date}"]
-    # st.write(today_data)
-    for index, row in today_data.iterrows():
-        # st.write(row[index])
-        if row["CATEGORY"] == "HUMAN PRODUCTIVITY":
-            issue = {
-                "issue": row["ISSUE"],
-                "raise_date": row["RAISE DATE"],
-                "target_date": row["TARGET DATE"],
-                "responsibility": row["RESPONSIBILITY"],
-                "action": row["ACTION"],
-                "status": row["STATUS"]
-            }
-            hp_issue.append(issue)
-        if row["CATEGORY"] == "PLANT AGGREGATE OEE":
-            issue = {
-                "issue": row["ISSUE"],
-                "raise_date": row["RAISE DATE"],
-                "target_date": row["TARGET DATE"],
-                "responsibility": row["RESPONSIBILITY"],
-                "action": row["ACTION"],
-                "status": row["STATUS"]
-            }
-            oee_issue.append(issue)
-    # st.write(issue_data)
-    # issues_list = [cost_issue(*row) for row in issue_data]
-    # for issue in issues_list:
-    #     print(issue)
+    hp_max = 3
+    oee_max = 3
+    hp_issues = issue_data[(issue_data["DATE"] == f"{on_date}") & (issue_data["CATEGORY"] == "HUMAN PRODUCTIVITY")]
+    oee_issues = issue_data[(issue_data["DATE"] == f"{on_date}") & (issue_data["CATEGORY"] == "PLANT AGGREGATE OEE")]
+    hp_length = len(hp_issues)
+    oee_length = len(oee_issues)
+    for index, row in hp_issues.iterrows():
+        issue = {
+            "issue": row["ISSUE"],
+            "raise_date": row["RAISE DATE"],
+            "target_date": row["TARGET DATE"],
+            "responsibility": row["RESPONSIBILITY"],
+            "action": row["ACTION"],
+            "status": row["STATUS"]
+        }
+        hp_issue.append(issue)
+        pass
+    while hp_length < hp_max:
+        dummy_issue = {
+            "issue": "N/A",
+            "raise_date": "N/A",
+            "target_date": "N/A",
+            "responsibility": "N/A",
+            "action": "N/A",
+            "status": "N/A"
+        }
+        hp_issue.append(dummy_issue)
+        hp_max = hp_max-1
+    
+    for index, row in oee_issues.iterrows():
+        issue = {
+            "issue": row["ISSUE"],
+            "raise_date": row["RAISE DATE"],
+            "target_date": row["TARGET DATE"],
+            "responsibility": row["RESPONSIBILITY"],
+            "action": row["ACTION"],
+            "status": row["STATUS"]
+        }
+        oee_issue.append(issue)
+        pass
+    while oee_length < oee_max:
+        dummy_issue = {
+            "issue": "N/A",
+            "raise_date": "N/A",
+            "target_date": "N/A",
+            "responsibility": "N/A",
+            "action": "N/A",
+            "status": "N/A"
+        }
+        oee_issue.append(dummy_issue)
+        oee_max = oee_max-1
 
     human_productivity = cmp(0,0)
     plant_agrigate = cmp(0,0)
@@ -817,7 +840,7 @@ def cost_ftd():
                 plant_agrigate = cmp(row["TARGET"], row["ACTUAL"])
     st.subheader(f"Status as on: {on_date}",divider="gray")
     col1,col2=st.columns((1,1.7))
-    with col1:
+    with col1:  #Dynamic C letter
         tree = ET.parse('resources\C.svg')
         root = tree.getroot()
         current_date = datetime.date.today()
@@ -1134,7 +1157,32 @@ def mach_break_time():
 
 def raw_metarial():
     current_date()
-
+    # bar_graph("RAW MATERIAL PDI")
+    raw_data = fetch_data("PPM PROBLEMS")
+    st.write(raw_data)
+    date = st.date_input("select date")
+    raw_data = raw_data[(raw_data["DATE"] == f"{date}") & (raw_data["CATEGORY"] == "PLANT PPM")]
+    length = len(raw_data)
+    st.write(length)
+    my_event = []
+    max_issues = 3
+    for index, row in raw_data.iterrows():
+        issue = {
+            "PROBLEM": row["PROBLEM"],
+            "PART_LINE": row["PART_LINE"],
+            "REJ_QTY": row["REJ_QTY"]
+        }
+        my_event.append(issue)
+        pass
+    while length < max_issues:
+        dummy_issue = {
+            "PROBLEM": "N/A",
+            "PART_LINE": "N/A",
+            "REJ_QTY": "N/A"
+        }
+        my_event.append(dummy_issue)
+        max_issues = max_issues-1
+    st.write(my_event)
     st.markdown("""
             <style>
                     .float-container {  padding: 5px;   }
@@ -1181,20 +1229,6 @@ class cmp():
         self.actual = actual
     def show(self):
         return f"Target was {self.target}% and achived {self.actual}%"
-
-# def delivery_data_fetch():
-#     fconn = sqlite3.connect("database/delivery.db")
-#     cursor = fconn.cursor()
-#     specific_date = on_date
-#     query = "SELECT * FROM Delivery WHERE Date = ?"
-#     cursor.execute(query, (specific_date,))
-#     rows = cursor.fetchall()
-#     fconn.close()
-#     # print(rows)
-#     # print(type(rows[0]))
-#     # st.write(rows[0][3])
-#     delivery_data = fetch_data("OTIF_CC PDI", "CATEGORY", "OE")
-#     return delivery_data
      
 def delivery_ftd():
     oe = cmp(0,0)
@@ -1234,7 +1268,7 @@ def delivery_ftd():
 
     st.subheader(f"Status as on: {on_date}", divider="gray")
     col1,col2=st.columns((1,1.9))
-    with col1:
+    with col1:  #Dynamic D letter
         tree = ET.parse('resources\D.svg')
         root = tree.getroot()
         current_date = datetime.date.today()
@@ -1312,10 +1346,10 @@ def delivery_ftd():
         #     </div>
         #     """, unsafe_allow_html=True)
     with col2:
-        st.subheader("ON TIME IN FULL (OTIF)")
+        st.markdown(f"""<div style='text-align:center; font-size:1.5rem; font-weight:bold'>ON TIME IN FULL (OTIF)</div>""",unsafe_allow_html=True)
         blk1,blk2=st.columns((1,1))
         with blk1:
-            st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:8rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>OE<hr style='margin:0em;'>
+            st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:7rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>OE<hr style='margin:0em;'>
                             <div style='content: ""; height:72%; display: table; display:flex;clear: both;'>
                                 <div style='float: left;width: 50%;padding: 1rem 2rem;font-size:1rem;'>Target
                                     <h6>{oe.target}%</h6>
@@ -1326,7 +1360,7 @@ def delivery_ftd():
                                 </div>
                             </div>
                             </div>""",unsafe_allow_html=True)
-            st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:8rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>OE SPARES<hr style='margin:0em;'>
+            st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:7rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>OE SPARES<hr style='margin:0em;'>
                             <div style='content: center; height:72%; display: table;display:flex;clear: both;'>
                                 <div style='float: left;test-align:center;width: 50%;padding:1rem 2rem;font-size:1rem;'>Target
                                     <h6>{oe_spares.target}%</h6>
@@ -1338,7 +1372,7 @@ def delivery_ftd():
                             </div>
                             </div>""",unsafe_allow_html=True)
         with blk2:
-            st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:8rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>AFTERMARKET<hr style='margin:0em;'>
+            st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:7rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>AFTERMARKET<hr style='margin:0em;'>
                             <div style='content: ""; height:72%; display: table;display:flex;clear: both;'>
                                 <div style='float: left;width: 50%;padding: 1rem 2rem;font-size:1rem;'>Target
                                     <h6>{aftermarket.target}%</h6>
@@ -1349,7 +1383,7 @@ def delivery_ftd():
                                 </div>
                             </div>
                             </div>""",unsafe_allow_html=True)
-            st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:8rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>EXPORT<hr style='margin:0em;'>
+            st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:7rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>EXPORT<hr style='margin:0em;'>
                             <div style='content: center; height:72%; display: table;display:flex;clear: both;'>
                                 <div style='float: left;test-align:center;width: 50%;padding:1rem 2rem;font-size:1rem;'>Target
                                     <h6>{export.target}%</h6>
@@ -1387,7 +1421,7 @@ def delivery_ftd():
                 }}
                 .float-hd {{width: 20%; font-size:1rem; color:black; float: left; word-wrap:break-word; height:8rem; text-align:center; padding-top: 2.5rem; line-height:1rem; border: 1px solid black; overflow:hidden;
                 }}
-                .float-icu {{width: 100%; font-size:1rem; color:black; font-weight:bold; float: left; word-wrap:break-word; height:4rem; text-align:center; padding-top: 0.4rem; border: 1px solid black; overflow:hidden;
+                .float-icu {{width: 100%; font-size:1.2rem; color:black; font-weight:bold; float: left; word-wrap:break-word; height:4rem; text-align:center; padding-top: 0.8rem; border: 1px solid black; overflow:hidden;
                 }}
                 .float-hcu {{width: 46%; font-size:1rem; color:black; font-weight:bold; float: left; word-wrap:break-word; height:7rem; text-align:center; padding: 10px; line-height:1rem; border: 1px solid black; overflow:hidden;
                 }}
@@ -1412,38 +1446,54 @@ def delivery_ftd():
         </div>
     """,unsafe_allow_html=True)
     
-    issue = fetch_data("DELIVERY ISSUES")
-    # st.write(issue)
-    # issue["DATE"] = pd.to_datetime(issue["DATE"])
-    # issue = issue[issue['DATE'].dt.date == on_date]
-    # issue = issue[["PART NO", "ISSUE RAISED", "ACTION", "TARGET DATE"]]
+    issues = fetch_data("DELIVERY ISSUES")
+    delivery_issue = []
+    issues = issues[(issues["DATE"] == f"{on_date}")]
+    length = len(issues)
+    del_max_issues = 3
+    for index, row in issues.iterrows():
+        issue = {
+            "PART_NO": row["PART NO"],
+            "ISSUE": row["ISSUE RAISED"],
+            "ACTION": row["ACTION"],
+            "T_DATE": row["TARGET DATE"]
+        }
+        delivery_issue.append(issue)
+        pass
+    while length < del_max_issues:
+        dummy_issue = {
+            "PART_NO": "N/A",
+            "ISSUE": "N/A",
+            "ACTION": "N/A",
+            "T_DATE": "N/A"
+        }
+        delivery_issue.append(dummy_issue)
+        del_max_issues = del_max_issues-1
     
-    
-    # st.write(issue)
     st.markdown(f"""
             <div class="float-container">
                 <div class="float-icu">Costomer Urgencies/Issues</div>
             </div>
             <div class="float-container">
                 <div class="float-hcd">Part No <hr>
-                    <p class="par">prt_no1</p>
-                    <p class="par">prt_no2</p>
-                    <p class="par">prt_no3</p>
+                    <p class="par">{delivery_issue[0]["PART_NO"]}</p>
+                    <p class="par">{delivery_issue[1]["PART_NO"]}</p>
+                    <p class="par">{delivery_issue[2]["PART_NO"]}</p>
                 </div>
                 <div class="float-hcd" style='width:30%;'>Issue Raised <hr>
-                    <p class="par">issue_ris1</p>
-                    <p class="par">issue_ris2</p>
-                    <p class="par">issue_ris3</p>
+                    <p class="par">{delivery_issue[0]["ISSUE"]}</p>
+                    <p class="par">{delivery_issue[1]["ISSUE"]}</p>
+                    <p class="par">{delivery_issue[2]["ISSUE"]}</p>
                 </div>
                 <div class="float-hcd" style='width:30%;'>Action to be Taken <hr>
-                    <p class="par">action_take1</p>
-                    <p class="par">action_take2</p>
-                    <p class="par">action_take3</p>
+                    <p class="par">{delivery_issue[0]["ACTION"]}</p>
+                    <p class="par">{delivery_issue[1]["ACTION"]}</p>
+                    <p class="par">{delivery_issue[2]["ACTION"]}</p>
                 </div>
                 <div class="float-hcd">Trgt Date <hr>
-                    <p class="par">trgt_dt1</p>
-                    <p class="par">trgt_dt2</p>
-                    <p class="par">trgt_dt3</p>
+                    <p class="par">{delivery_issue[0]["T_DATE"]}</p>
+                    <p class="par">{delivery_issue[1]["T_DATE"]}</p>
+                    <p class="par">{delivery_issue[2]["T_DATE"]}</p>
                 </div>
             </div>
     """,unsafe_allow_html=True)
@@ -1673,13 +1723,8 @@ def sale_actual():
     st.subheader("Sale Plan vs Actual Trend")
     bar_graph("SALE PLAN VS ACTUAL")
     sale_plan = fetch_data("SALE PLAN VS ACTUAL")
-    bs_today = 0
-    ord_book = 0
-    act_sale = 0
-    dlt_sb = 0
-    dlt_so = 0
     sale_plan["DATE"] = pd.to_datetime(sale_plan["DATE"])
-    month = datetime.now().month
+    month = datetime.datetime.now().month
     filter_data = sale_plan[sale_plan["DATE"].dt.month == month]
     Total_month_budget = filter_data["BUDGETED SALE"].sum()
     Total_month_order = filter_data["ORDER BOOK"].sum()
@@ -1718,30 +1763,57 @@ def sale_actual():
             <div class="float-hd">{Total_delta_so}</div>
         </div>
     """,unsafe_allow_html=True)
+    
+    del_issue = fetch_data("DELIVERY ISSUEs")
+    delivery_issue = []
+    del_issue['DATE'] = pd.to_datetime(del_issue['DATE']) # Convert the "DATE" column to datetime
+    current_month = datetime.datetime.now().month
+    filtered_del_issue = del_issue[del_issue['DATE'].dt.month == current_month]
+    length = len(filtered_del_issue)
+    ftp_max_issues = 3
+    for index, row in filtered_del_issue.iterrows():
+        issue = {
+            "PART_NO": row["PART NO"],
+            "ISSUE": row["ISSUE RAISED"],
+            "ACTION": row["ACTION"],
+            "T_DATE": row["TARGET DATE"]
+        }
+        delivery_issue.append(issue)
+        pass
+    while length < ftp_max_issues:
+        dummy_issue = {
+            "PART_NO": "N/A",
+            "ISSUE": "N/A",
+            "ACTION": "N/A",
+            "T_DATE": "N/A"
+        }
+        delivery_issue.append(dummy_issue)
+        ftp_max_issues = ftp_max_issues-1
+
     st.markdown(f"""
             <div class="float-container">
                 <div class="float-icu">Costomer Urgencies/Issues</div>
             </div>
             <div class="float-container">
                 <div class="float-hcd">Part No <hr>
-                    <p class="par">prt_no1</p>
-                    <p class="par">prt_no2</p>
-                    <p class="par">prt_no3</p>
+                    <p class="par">{delivery_issue[0]["PART_NO"]}</p>
+                    <p class="par">{delivery_issue[1]["PART_NO"]}</p>
+                    <p class="par">{delivery_issue[2]["PART_NO"]}</p>
                 </div>
                 <div class="float-hcd" style='width:30%;'>Issue Raised <hr>
-                    <p class="par">issue_ris1</p>
-                    <p class="par">issue_ris2</p>
-                    <p class="par">issue_ris3</p>
+                    <p class="par">{delivery_issue[0]["ISSUE"]}</p>
+                    <p class="par">{delivery_issue[1]["ISSUE"]}</p>
+                    <p class="par">{delivery_issue[2]["ISSUE"]}</p>
                 </div>
                 <div class="float-hcd" style='width:30%;'>Action to be Taken <hr>
-                    <p class="par">action_take1</p>
-                    <p class="par">action_take2</p>
-                    <p class="par">action_take3</p>
+                    <p class="par">{delivery_issue[0]["ACTION"]}</p>
+                    <p class="par">{delivery_issue[1]["ACTION"]}</p>
+                    <p class="par">{delivery_issue[2]["ACTION"]}</p>
                 </div>
-                <div class="float-hcd">Trgt Date <hr>
-                    <p class="par">trgt_dt1</p>
-                    <p class="par">trgt_dt2</p>
-                    <p class="par">trgt_dt3</p>
+                <div class="float-hcd">Target Date <hr>
+                    <p class="par">{delivery_issue[0]["T_DATE"]}</p>
+                    <p class="par">{delivery_issue[1]["T_DATE"]}</p>
+                    <p class="par">{delivery_issue[2]["T_DATE"]}</p>
                 </div>
             </div>
     """,unsafe_allow_html=True)
@@ -1937,8 +2009,7 @@ def quality_ftd():
                 supplier_ppm = cmp(row["TARGET"], row["ACTUAL"])
         pass
     col1,col2=st.columns((1,1.8))
-    # ********** Dynamic Q Letter ********** #
-    with col1:
+    with col1:  # ********** Dynamic Q Letter ********** #
         tree = ET.parse('resources\Q.svg')
         root = tree.getroot()
         current_date = datetime.date.today()
@@ -2004,8 +2075,7 @@ def quality_ftd():
         #         </svg>
         #     </div>
         #     """, unsafe_allow_html=True)
-    with col2:
-        # **************** Customer Complaints **************************#
+    with col2:  # **************** Customer Complaints **************************#
         st.markdown(f"##### Today'S Customer Complaints: {len(df)}")
         data_df = df[["COMPLAINT", "RAISE DATE", "RESPONSIBILITY", "TARGET DATE", "STATUS"]]
         def format_status(status):
@@ -2070,27 +2140,51 @@ def quality_ftd():
         # .replace("comp_det3",(str("test_complaint3"))).replace("comp_rais3",(str("test_ris3"))).replace("comp_cls3",(str("test_cls3"))).replace("comp_sts3",(str("CLOSE3"))),unsafe_allow_html=True)
         
         # **************** Plant PPM & Supplier PPM **************************#
-        st.markdown("""<div style='padding-top:1.5rem;'><h4>PLANT PPM & SUPPLIER PPM</h4></div>""",unsafe_allow_html=True)
+        # st.markdown("""<div style='padding-top:1.5rem;'><h5>PLANT PPM & SUPPLIER PPM</h5></div>""",unsafe_allow_html=True)
         plant_prob = []
         supplier_prob = []
-        filter_problem = ppm_problem[ppm_problem["DATE"] == f"{on_date}"]
-        for index, row in filter_problem.iterrows():
-            if row["CATEGORY"] == "PLANT PPM":
-                issue = {
-                    "PROBLEM": row["PROBLEM"],
-                    "PART_LINE": row["PART_LINE"],
-                    "REJ_QTY": row["REJ_QTY"]
-                }
-                plant_prob.append(issue)
-            if row["CATEGORY"] == "SUPPLIER PPM":
-                issue = {
-                    "PROBLEM": row["PROBLEM"],
-                    "PART_LINE": row["PART_LINE"],
-                    "REJ_QTY": row["REJ_QTY"]
-                }
-                supplier_prob.append(issue)
+        plant_filter = ppm_problem[(ppm_problem["DATE"] == f"{on_date}") & (ppm_problem["CATEGORY"] == "PLANT PPM")]
+        supplier_filter = ppm_problem[(ppm_problem["DATE"] == f"{on_date}") & (ppm_problem["CATEGORY"] == "SUPPLIER PPM")]
+        plant_length = len(plant_filter)
+        supplier_length = len(supplier_filter)
+        plant_max_issues = 3
+        supplier_max_issues = 3
+        for index, row in plant_filter.iterrows():
+            issue = {
+                "PROBLEM": row["PROBLEM"],
+                "PART_LINE": row["PART_LINE"],
+                "REJ_QTY": row["REJ_QTY"]
+            }
+            plant_prob.append(issue)
+            pass
+        while plant_length < plant_max_issues:
+            dummy_issue = {
+                "PROBLEM": "N/A",
+                "PART_LINE": "N/A",
+                "REJ_QTY": "N/A"
+            }
+            plant_prob.append(dummy_issue)
+            plant_max_issues = plant_max_issues-1
+
+        for index, row in supplier_filter.iterrows():
+            issue = {
+                "PROBLEM": row["PROBLEM"],
+                "PART_LINE": row["PART_LINE"],
+                "REJ_QTY": row["REJ_QTY"]
+            }
+            supplier_prob.append(issue)
+            pass
+        while supplier_length < supplier_max_issues:
+            dummy_issue = {
+                "PROBLEM": "N/A",
+                "PART_LINE": "N/A",
+                "REJ_QTY": "N/A"
+            }
+            supplier_prob.append(dummy_issue)
+            supplier_max_issues = supplier_max_issues-1
+
         cl1,cl2=st.columns((1,2))
-        with cl1:
+        with cl1:   # ********** PPM Actual & Target ********** #
             st.markdown(f"""<div style='margin:1rem;font-size:1.3rem;padding-top:0.7rem;border:1px solid black;height:8rem;border-radius:0.7rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>PLANT PPM<hr style='margin:0em;'>
                         <div style='content: ""; height:72%; display: table;display:flex;clear: both;'>
                             <div style='float: left;width: 50%;padding: 1rem 2rem;font-size:1rem;'>Target
@@ -2220,17 +2314,28 @@ def quality_ftd():
     # ftp rejection issue
     fr_issue = fetch_data("FTP REJECTION ISSUE")
     ftp_issue = []
+    fr_issue = fr_issue[(fr_issue["DATE"] == f"{on_date}")]
+    length = len(fr_issue)
+    ftp_max_issues = 3
     for index, row in fr_issue.iterrows():
-        if row["DATE"] == f"{on_date}":
-            issue_instance = {
-                "PART_NO": row["PART NO"],
-                "ISSUE": row["ISSUE"],
-                "ACTION": row["CORRECTIVE ACTION"],
-                "T_DATE": row["TARGET DATE"]
-            }
-            ftp_issue.append(issue_instance)
-            # ftp_issue.append(ftp_issues(row["PART NO"], row["ISSUE"], row["CORRECTIVE ACTION"], row["TARGET DATE"]))
-            pass
+        issue = {
+            "PART_NO": row["PART_NO"],
+            "ISSUE": row["ISSUE"],
+            "ACTION": row["ACTION"],
+            "T_DATE": row["T_DATE"]
+        }
+        ftp_issue.append(issue)
+        pass
+    while length < ftp_max_issues:
+        dummy_issue = {
+            "PART_NO": "N/A",
+            "ISSUE": "N/A",
+            "ACTION": "N/A",
+            "T_DATE": "N/A"
+        }
+        ftp_issue.append(dummy_issue)
+        ftp_max_issues = ftp_max_issues-1
+
     # st.write(fr_issue)
     st.markdown(f"""
         <div class="float-container">
@@ -2258,6 +2363,7 @@ def quality_ftd():
     """, unsafe_allow_html=True)
 
 def customer_complaint():
+    current_date()
     class complaint():
         def __init__(self, comp, rais, resp, close, stat) -> None: 
             self.comp = comp
@@ -2284,7 +2390,7 @@ def customer_complaint():
         # st.write(complaints["COMPLAINT"])
     # st.write(datas[3].comp)
     
-    st.subheader("Customer Complaints Trend:")
+    # st.subheader("Customer Complaints Trend:")
     cl1,cl2,cl3 = st.columns((1,1,1))
     with cl1:
         # ****** Daily_Data ****** #
@@ -2428,11 +2534,11 @@ def customer_complaint():
 def plant_supplier_ppm():
     # **************** Plant PPM & Supplier PPM **************************#
     current_date()
-    st.subheader("Plant and Supplier PPM Trend")
+    # st.subheader("Plant and Supplier PPM Trend")
     bar_graph("PLANT PPM & SUPPLIER PPM")
     ppm_data = fetch_data("PLANT PPM & SUPPLIER PPM")
     ppm_data['DATE'] = pd.to_datetime(ppm_data['DATE']) # Convert the "DATE" column to datetime
-    current_month = datetime.now().month    # Get the current month
+    current_month = datetime.datetime.now().month    # Get the current month
     filtered_ppm_data = ppm_data[ppm_data['DATE'].dt.month == current_month]  # Filter the DataFrame for the current month
     # st.write(ppm_data["DATE"][0])
     filter_plant_data = ppm_data[ppm_data["CATEGORY"] == "PLANT PPM"]
@@ -2449,6 +2555,50 @@ def plant_supplier_ppm():
     # st.write(total_supplier_actual)
 
     # st.write(f"total value is = {total_moth_target}")
+    ppm_problem = fetch_data("PPM PROBLEMS")
+    ppm_problem['DATE'] = pd.to_datetime(ppm_problem['DATE']) # Convert the "DATE" column to datetime
+    filtered_ppm_problem = ppm_problem[ppm_problem['DATE'].dt.month == current_month] 
+    plant_prob = []
+    supplier_prob = []
+    plant_filter = filtered_ppm_problem[filtered_ppm_problem["CATEGORY"] == "PLANT PPM"]
+    supplier_filter = filtered_ppm_problem[filtered_ppm_problem["CATEGORY"] == "SUPPLIER PPM"]
+    plant_length = len(plant_filter)
+    supplier_length = len(supplier_filter)
+    plant_max_issues = 3
+    supplier_max_issues = 3
+    for index, row in plant_filter.iterrows():
+        issue = {
+            "PROBLEM": row["PROBLEM"],
+            "PART_LINE": row["PART_LINE"],
+            "REJ_QTY": row["REJ_QTY"]
+        }
+        plant_prob.append(issue)
+        pass
+    while plant_length < plant_max_issues:
+        dummy_issue = {
+            "PROBLEM": "N/A",
+            "PART_LINE": "N/A",
+            "REJ_QTY": "N/A"
+        }
+        plant_prob.append(dummy_issue)
+        plant_max_issues = plant_max_issues-1
+
+    for index, row in supplier_filter.iterrows():
+        issue = {
+            "PROBLEM": row["PROBLEM"],
+            "PART_LINE": row["PART_LINE"],
+            "REJ_QTY": row["REJ_QTY"]
+        }
+        supplier_prob.append(issue)
+        pass
+    while supplier_length < supplier_max_issues:
+        dummy_issue = {
+            "PROBLEM": "N/A",
+            "PART_LINE": "N/A",
+            "REJ_QTY": "N/A"
+        }
+        supplier_prob.append(dummy_issue)
+        supplier_max_issues = supplier_max_issues-1
     cl1,cl2=st.columns((1,2))
     with cl1:
         st.markdown(f"""<div style='margin:1rem;font-size:1.3rem;padding-top:0.7rem;border:1px solid black;height:8rem;border-radius:0.7rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>PLANT PPM<hr style='margin:0em;'>
@@ -2485,19 +2635,19 @@ def plant_supplier_ppm():
         <div style='padding-top:0.5rem;'>
             <div class="float-container">
             <div class="ftp_prb" style='width:50%'>Problems<hr style='margin:0.15rem;'>
-                <p >{"plant_prob.problem"}</p>
-                <p >prbl2</p>
-                <p >prbl3</p>
+                <p >{plant_prob[0]["PROBLEM"]}</p>
+                <p >{plant_prob[1]["PROBLEM"]}</p>
+                <p >{plant_prob[2]["PROBLEM"]}</p>
             </div>
             <div class="ftp_prb" style='width:25%'>Part/Line<hr style='margin:0.15rem;'>
-                <p >{"plant_prob.part_line"}</p>
-                <p >prt_ln2</p>
-                <p >prt_ln3</p>
+                <p >{plant_prob[0]["PART_LINE"]}</p>
+                <p >{plant_prob[1]["PART_LINE"]}</p>
+                <p >{plant_prob[2]["PART_LINE"]}</p>
             </div>
             <div class="ftp_prb" style='width:25%'>Rej Qty<hr style='margin:0.15rem;'>
-                <p >{"plant_prob.rej_qty"}</p>
-                <p >rjqt2</p>
-                <p >rjqt3</p>
+                <p >{plant_prob[0]["REJ_QTY"]}</p>
+                <p >{plant_prob[1]["REJ_QTY"]}</p>
+                <p >{plant_prob[2]["REJ_QTY"]}</p>
             </div>
         </div>
         """,unsafe_allow_html=True)
@@ -2505,19 +2655,19 @@ def plant_supplier_ppm():
             <div style='padding-top:0.5rem;'>
                 <div class="float-container">
                 <div class="ftp_prb" style='font-weight:bold; width:50%'>Problems<hr style='margin:0.15rem;'>
-                    <p >{"supplier_prob.problem"}</p>
-                    <p >a</p>
-                    <p >a</p>
+                    <p >{supplier_prob[0]["PROBLEM"]}</p>
+                    <p >{supplier_prob[1]["PROBLEM"]}</p>
+                    <p >{supplier_prob[2]["PROBLEM"]}</p>
                 </div>
                 <div class="ftp_prb" style='font-weight:bold; width:25%'>Part/Line<hr style='margin:0.15rem;'>
-                    <p >{"supplier_prob.part_line"}</p>
-                    <p >a</p>
-                    <p >a</p>
+                    <p >{supplier_prob[0]["PART_LINE"]}</p>
+                    <p >{supplier_prob[1]["PART_LINE"]}</p>
+                    <p >{supplier_prob[2]["PART_LINE"]}</p>
                 </div>
                 <div class="ftp_prb" style='font-weight:bold; width:25%'>Rej Qty<hr style='margin:0.15rem;'>
-                    <p >{"supplier_prob.rej_qty"}</p>
-                    <p >a</p>
-                    <p >a</p>
+                    <p >{supplier_prob[0]["REJ_QTY"]}</p>
+                    <p >{supplier_prob[1]["REJ_QTY"]}</p>
+                    <p >{supplier_prob[2]["REJ_QTY"]}</p>
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -2525,8 +2675,19 @@ def plant_supplier_ppm():
 
 def ftp_rejection():
     #**************** FTP And Reported Rejection **********************#
-    st.subheader("FTP and Reported Rejection Trend")
+    # st.subheader("FTP and Reported Rejection Trend")
     bar_graph("FTP AND REPORTED REJECTION")
+    ftp_rej = fetch_data("FTP AND REPORTED REJECTION")
+    current_month = datetime.datetime.now().month
+    ftp_rej['DATE'] = pd.to_datetime(ftp_rej['DATE']) # Convert the "DATE" column to datetime
+    filtered_ftp_rej = ftp_rej[ftp_rej['DATE'].dt.month == current_month]
+    sum_ftp_target = filtered_ftp_rej[filtered_ftp_rej["CATEGORY"] == "First Time Pass (%)"]["TARGET"].sum()
+    sum_ftp_actual = filtered_ftp_rej[filtered_ftp_rej["CATEGORY"] == "First Time Pass (%)"]["ACTUAL"].sum()
+    sum_rrp_target = filtered_ftp_rej[filtered_ftp_rej["CATEGORY"] == "Reported Rejection (%)"]["TARGET"].sum()
+    sum_rrp_actual = filtered_ftp_rej[filtered_ftp_rej["CATEGORY"] == "Reported Rejection (%)"]["ACTUAL"].sum()
+    sum_rri_target = filtered_ftp_rej[filtered_ftp_rej["CATEGORY"] == "Reported Rejection (INR)"]["TARGET"].sum()
+    sum_rri_actual = filtered_ftp_rej[filtered_ftp_rej["CATEGORY"] == "Reported Rejection (INR)"]["ACTUAL"].sum()
+    
     st.markdown(f"""
                 <style>
                      .float-container {{ padding: 5px;   }}
@@ -2553,44 +2714,64 @@ def ftp_rejection():
                         <p class="par" style='font-weight:bold;'>Reported Rejection (INR)</p>
                     </div>
                         <div class="float-prt" style='height:10rem; font-size:1rem'>Target <hr>
-                        <p class="par">{"ftp_today.target"}</p>
-                        <p class="par">{"rej_per.target"}</p>
-                        <p class="par">{"rej_inr.target"}</p>
+                        <p class="par">{sum_ftp_target}</p>
+                        <p class="par">{sum_rrp_target}</p>
+                        <p class="par">{sum_rri_target}</p>
                     </div>
                         <div class="float-prt" style='height:10rem; font-size:1rem'>Actual <hr>
-                        <p class="par">{"ftp_today.actual"}</p>
-                        <p class="par">{"rej_per.actual"}</p>
-                        <p class="par">{"rej_inr.actual"}</p>
+                        <p class="par">{sum_ftp_actual}</p>
+                        <p class="par">{sum_rrp_actual}</p>
+                        <p class="par">{sum_rri_actual}</p>
                     </div>
                 </div>
                     
-            """
-            .replace("prn",(str("Part_No")))
-            .replace("irp",(str("Issue_Repo")))
-            .replace("cra",(str("Crt_Act")))
-            .replace("tda",(str("Trg_Date"))),unsafe_allow_html=True)
+            """,unsafe_allow_html=True)
 
+    fr_issue = fetch_data("FTP REJECTION ISSUE")
+    fr_issue['DATE'] = pd.to_datetime(fr_issue['DATE']) # Convert the "DATE" column to datetime
+    filtered_fr_issue = fr_issue[fr_issue['DATE'].dt.month == current_month]
+    myfr_issue = []
+    length = len(filtered_fr_issue)
+    fr_max_issues = 3
+    for index, row in filtered_fr_issue.iterrows():
+        issue = {
+            "PART_NO": row["PART NO"],
+            "ISSUE": row["ISSUE"],
+            "ACTION": row["CORRECTIVE ACTION"],
+            "T_DATE": row["TARGET DATE"]
+        }
+        myfr_issue.append(issue)
+        pass
+    while length < fr_max_issues:
+        dummy_issue = {
+            "PART_NO": "N/A",
+            "ISSUE": "N/A",
+            "ACTION": "N/A",
+            "T_DATE": "N/A"
+        }
+        myfr_issue.append(dummy_issue)
+        fr_max_issues = fr_max_issues-1
     st.markdown(f"""
         <div class="float-container">
             <div class="float-pn">Part number<hr>
-                <p class="par">prn</p>
-                <p class="par">prn</p>
-                <p class="par">prn</p>
+                <p class="par">{myfr_issue[0]["PART_NO"]}</p>
+                <p class="par">{myfr_issue[1]["PART_NO"]}</p>
+                <p class="par">{myfr_issue[2]["PART_NO"]}</p>
             </div>
             <div class="float-ir">Issue Reported<hr>
-                <p class="par">irp</p>
-                <p class="par">irp</p>
-                <p class="par">irp</p>
+                <p class="par">{myfr_issue[0]["ISSUE"]}</p>
+                <p class="par">{myfr_issue[1]["ISSUE"]}</p>
+                <p class="par">{myfr_issue[2]["ISSUE"]}</p>
             </div>
             <div class="float-ca">Corrective Action<hr>
-                <p class="par">cra</p>
-                <p class="par">cra</p>
-                <p class="par">cra</p>
+                <p class="par">{myfr_issue[0]["ACTION"]}</p>
+                <p class="par">{myfr_issue[1]["ACTION"]}</p>
+                <p class="par">{myfr_issue[2]["ACTION"]}</p>
             </div>
             <div class="float-td">Targate Date<hr>
-                <p class="par">tda</p>
-                <p class="par">tda</p>
-                <p class="par">tda</p>
+                <p class="par">{myfr_issue[0]["T_DATE"]}</p>
+                <p class="par">{myfr_issue[1]["T_DATE"]}</p>
+                <p class="par">{myfr_issue[2]["T_DATE"]}</p>
             </div>
         </div>
     """, unsafe_allow_html=True)
