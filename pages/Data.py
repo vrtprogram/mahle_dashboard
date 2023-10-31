@@ -707,57 +707,112 @@ if authentication_status:
         c_opt = ['', 'Productivity and OEE', 'RAW Metarial PDI', 'Machine Breakdown Time']
         slct = st.selectbox('Cost', options=c_opt)
         if slct == 'Productivity and OEE':
-            with sqlite3.connect('database/cost.db') as conn:
+            with sqlite3.connect('database/main_database.db') as conn:
                 cur = conn.cursor()
-                option = ["", "UPDATE", 'LOG']
-                selected = st.selectbox("Productivity and OEE", options=option, index=0)
-                # ACTIONS ACCORDING TO OPTIONS
-                if selected == 'LOG':
-                    no_event = st.number_input("Enter number of events to log", step=1)
-                    if no_event > 0:
-                        with st.form("cost"):
-                            date = st.date_input("Date")
-                            col1, col2, col3, col4 = st.columns((1, 1, 1, 1))
-                            for i in range(0, no_event):
-                                with col1:
-                                    st.selectbox("Category", options=['','HUMAN PRODUCTIVITY', 'PLANT AGGREGATE OEE'], key=f"category{i}")
-                                with col2:
-                                    st.number_input("Target", key=f"target{i}")
-                                with col3:
-                                    st.number_input("Actual", key=f"actual{i}")
-                                with col4:
-                                    st.multiselect("Select Issues", options=['issue1','issue2','issue3','issue4'], key=f"issue{i}")
-                            submit = st.form_submit_button("Save")
-                            if submit:
+                opt = ["", "Productivity and OEE DATA", 'OEE_ISSUE']
+                slct = st.selectbox("Productivity and OEE", options=opt, index=0)
+                if slct == "Productivity and OEE DATA":
+                    option = ["", "UPDATE", 'LOG']
+                    selected = st.selectbox("Productivity and OEE DATA", options=option, index=0)
+                    # ACTIONS ACCORDING TO OPTIONS
+                    if selected == 'LOG':
+                        no_event = st.number_input("Enter number of events to log", step=1)
+                        if no_event > 0:
+                            with st.form("cost"):
+                                date = st.date_input("Date")
+                                col1, col2, col3 = st.columns((1, 1, 1))
                                 for i in range(0, no_event):
-                                    cur.execute(
-                                        f"""INSERT INTO 'PRODUCTIVITY AND OEE' VALUES ("{datetime.now()}","{date}","{st.session_state[f'category{i}']}","{st.session_state[f'target{i}']}","{st.session_state[f'actual{i}']}","{st.session_state[f'issue{i}']}")"""
-                                    )
-                                st.success("Data Saved")
-                if selected == 'UPDATE':
-                    date = st.date_input("Select date to update data")
-                    if date is not None:
-                        df = pd.read_sql_query(f"""Select * from 'PRODUCTIVITY AND OEE' where date = "{date}" """,conn)
-                        edited_df = st.data_editor(df, width=1600)
-                        update = st.button("Data Update")
-                        if update:
-                            try:
-                                for _, row in edited_df.iterrows():
-                                    cur.execute(
-                                        f'UPDATE COST SET CATEGORY = "{row["CATEGORY"]}", TARGET = "{row["TARGET"]}", ACTUAL = "{row["ACTUAL"]}", ISSUES = "{row["ISSUES"]}" WHERE TIME_STAMP = "{row["TIME_STAMP"]}" '
-                                    )
-                                    conn.commit()
-                                st.success("Data Updated")
-                            except Exception as e:
-                                st.write(e)
-                        time_stamp = st.text_input("Enter the time stamp to delete")
-                        button = st.button("Delete Entery")
-                        if button:
-                            cur.execute(f"DELETE FROM 'PRODUCTIVITY AND OEE' WHERE Time_Stamp = '{time_stamp}' ")
-                            conn.commit()
-                            st.success("Success")
-                            st.rerun()
-                    st.write("update")
+                                    with col1:
+                                        st.selectbox("Category", options=['','HUMAN PRODUCTIVITY', 'PLANT AGGREGATE OEE'], key=f"category{i}")
+                                    with col2:
+                                        st.number_input("Target", key=f"target{i}")
+                                    with col3:
+                                        st.number_input("Actual", key=f"actual{i}")
+                                submit = st.form_submit_button("Save")
+                                if submit:
+                                    for i in range(0, no_event):
+                                        cur.execute(
+                                            f"""INSERT INTO 'PRODUCTIVITY AND OEE' VALUES ("{datetime.now()}","{date}","{st.session_state[f'category{i}']}","{st.session_state[f'target{i}']}","{st.session_state[f'actual{i}']}")"""
+                                        )
+                                    st.success("Data Saved")
+                    if selected == 'UPDATE':
+                        date = st.date_input("Select date to update data")
+                        if date is not None:
+                            df = pd.read_sql_query(f"""Select * from 'PRODUCTIVITY AND OEE' where date = "{date}" """,conn)
+                            edited_df = st.data_editor(df, width=1600)
+                            update = st.button("Data Update")
+                            if update:
+                                try:
+                                    for _, row in edited_df.iterrows():
+                                        cur.execute(
+                                            f'UPDATE COST SET CATEGORY = "{row["CATEGORY"]}", TARGET = "{row["TARGET"]}", ACTUAL = "{row["ACTUAL"]}" WHERE TIME_STAMP = "{row["TIME_STAMP"]}" '
+                                        )
+                                        conn.commit()
+                                    st.success("Data Updated")
+                                except Exception as e:
+                                    st.write(e)
+                            time_stamp = st.text_input("Enter the time stamp to delete")
+                            button = st.button("Delete Entery")
+                            if button:
+                                cur.execute(f"DELETE FROM 'PRODUCTIVITY AND OEE' WHERE Time_Stamp = '{time_stamp}' ")
+                                conn.commit()
+                                st.success("Success")
+                                st.rerun()
+                        st.write("update")
+                if slct == "OEE_ISSUE":
+                    option = ["", "UPDATE", 'LOG']
+                    selected = st.selectbox("OEE_ISSUE", options=option, index=0)
+                    # ACTIONS ACCORDING TO OPTIONS
+                    if selected == 'LOG':
+                        no_event = st.number_input("Enter number of events to log", step=1)
+                        if no_event > 0:
+                            with st.form("cost"):
+                                date = st.date_input("Date")
+                                col1, col2, col3, col4, col5, col6 = st.columns((1, 1, 1, 1, 1, 1))
+                                for i in range(0, no_event):
+                                    with col1:
+                                        st.selectbox("Category", options=['','HUMAN PRODUCTIVITY', 'PLANT AGGREGATE OEE'], key=f"category{i}")
+                                    with col2:
+                                        st.text_input("Issue", key=f"issue{i}")
+                                    with col3:
+                                        st.text_input("Responsibility", key=f"responsibility{i}")
+                                    with col4:
+                                        st.date_input("Target_date", key=f"target_date{i}")
+                                    with col5:
+                                        st.text_input("Action", key=f"action{i}")
+                                    with col6:
+                                        st.selectbox("Status", options=['','Open', 'Closed', 'Inprocess'], key=f"status{i}")
+                                submit = st.form_submit_button("Save")
+                                if submit:
+                                    for i in range(0, no_event):
+                                        cur.execute(
+                                            f"""INSERT INTO 'COST ISSUE' VALUES ("{datetime.now()}","{date}","{st.session_state[f'category{i}']}","{st.session_state[f'issue{i}']}","{date}","{st.session_state[f'target_date{i}']}","{st.session_state[f'responsibility{i}']}","{st.session_state[f'action{i}']}","{st.session_state[f'status{i}']}")"""
+                                        )
+                                    st.success("Data Saved")
+                    if selected == 'UPDATE':
+                        date = st.date_input("Select date to update data")
+                        if date is not None:
+                            df = pd.read_sql_query(f"""Select * from 'COST ISSUE' where date = "{date}" """,conn)
+                            edited_df = st.data_editor(df, width=1600)
+                            update = st.button("Data Update")
+                            if update:
+                                try:
+                                    for _, row in edited_df.iterrows():
+                                        cur.execute(
+                                            f'UPDATE "COST ISSUE" SET CATEGORY = "{row["CATEGORY"]}","RAISE DATE" = "{row["RAISE DATE"]}","TARGET DATE" = "{row["TARGET DATE"]}","RESPONSIBILITY" = "{row["RESPONSIBILITY"]}","ACTION" = "{row["ACTION"]}","STATUS" = "{row["STATUS"]}" WHERE TIME_STAMP = "{row["TIME_STAMP"]}" '
+                                        )
+                                        conn.commit()
+                                    st.success("Data Updated")
+                                except Exception as e:
+                                    st.write(e)
+                            time_stamp = st.text_input("Enter the time stamp to delete")
+                            button = st.button("Delete Entery")
+                            if button:
+                                cur.execute(f"DELETE FROM 'COST ISSUE' WHERE Time_Stamp = '{time_stamp}' ")
+                                conn.commit()
+                                st.success("Success")
+                                st.rerun()
+                        st.write("update")
                     
         if slct == 'RAW Metarial PDI':
             with sqlite3.connect('database/cost.db') as conn:
@@ -817,7 +872,7 @@ if authentication_status:
                     st.write("update")
                     
         if slct == 'Machine Breakdown Time':
-            with sqlite3.connect('database/cost.db') as conn:
+            with sqlite3.connect('database/main_database.db') as conn:
                 cur = conn.cursor()
                 option = ["", "UPDATE", 'LOG']
                 selected = st.selectbox("Machine Breakdown Time", options=option, index=0)
@@ -861,7 +916,7 @@ if authentication_status:
                             try:
                                 for _, row in edited_df.iterrows():
                                     cur.execute(
-                                        f'UPDATE COST SET LINE = "{row["LINE"]}", MACHINE = "{row["MACHINE"]}", B/D TIME = "{row["B/D TIME"]}", ISSUE = "{row["ISSUE"]}", ACTION = "{row["ACTION"]}", STATUS = "{row["STATUS"]}", DELIVERY FAILURE = "{row["DELIVERY FAILURE"]}" WHERE TIME_STAMP = "{row["TIME_STAMP"]}" '
+                                        f'UPDATE "MACHINE BREAKDOWN TIME" SET LINE = "{row["LINE"]}", MACHINE = "{row["MACHINE"]}", B/D TIME = "{row["B/D TIME"]}", ISSUE = "{row["ISSUE"]}", ACTION = "{row["ACTION"]}", STATUS = "{row["STATUS"]}", DELIVERY FAILURE = "{row["DELIVERY FAILURE"]}" WHERE TIME_STAMP = "{row["TIME_STAMP"]}" '
                                     )
                                     conn.commit()
                                 st.success("Data Updated")

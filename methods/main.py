@@ -1,9 +1,13 @@
 import streamlit as st
 import sqlite3
+import base64
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+import datetime
+from xml.etree import ElementTree as ET
 
 
 #************ Body layout Start ************#
@@ -31,10 +35,12 @@ def  layout(head):
         table, th, td {
             border: 1px solid black;
             padding: 10px;
+            font-size:0.6rem;
         }
         th {
             text-align: center;
             background-color: #f2f2f2;
+            font-size:0.7rem;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -178,30 +184,17 @@ def fetch_data(table_name):
 #************ Main Data Fetch End ************#
 
 #************************** Safety_FTD Start **************************#
-class data():
-    def __init__(self, incident, time, location, medical, action):
-        self.incident = incident
-        self.time = time
-        self.location = location
-        self.medical = medical
-        self.action = action
-    def show(self):
-        return f"incident{self.incident} at time {self.time} on location {self.location}, medical given {self.medical} and take action {self.action}"
- 
-def fatch_incident_data():
-    try:
-        sconn = sqlite3.connect("database/safety.db")
-        cursor = sconn.cursor()
-        specific_date = on_date
-        query = "SELECT * FROM 'UNSAFE INCIDENCES' WHERE Date = ?"
-        cursor.execute(query, (specific_date,))
-        rows = cursor.fetchall()
-        sconn.close()
-        return rows
-    except sqlite3.Error as e:
-        print("Database error: ", str(e))
 
 def safety_ftd():
+    class data():
+        def __init__(self, incident, time, location, medical, action):
+            self.incident = incident
+            self.time = time
+            self.location = location
+            self.medical = medical
+            self.action = action
+        def show(self):
+            return f"incident{self.incident} at time {self.time} on location {self.location}, medical given {self.medical} and take action {self.action}"
     try:
         new_dict = {
             "Recordable Lost Time": 0,
@@ -229,16 +222,17 @@ def safety_ftd():
             """
             <style>
             .custom {
-                margin: 1rem;
-                padding-top: 1.3rem;
+                margin: 0.4rem;
+                padding-top: 0.7rem;
                 border: 1px solid black;
-                height: 8rem;
+                height: 5rem;
                 border-radius: 0.7rem;
                 font-weight: bold;
+                font-size:0.7rem;
                 box-shadow: 5px 5px 10px;
                 text-align: center;
             }
-            .custom h4{ color:white;font-weight:bold; }
+            .custom h4{ color:white;font-weight:bold; padding-top:0.5rem; }
             @media (min-width: 1920px) and (max-width: 2860px){
                 .custom { font-size:1.35rem; height:10rem; }
                 .custom h4{ color:white; font-size:1.3rem; font-weight:bold; padding-top:1rem}
@@ -283,7 +277,6 @@ def safety_ftd():
         color = "green" #Default color
         row_data = fetch_data("INCIDENCES DETAILS")
         for index, row in row_data.iterrows():
-            #Insert columns data in incident 
             incident = data(row['EVENT'], row['TIME'], row['VALUE STREAM'], row['MEDICAL'], row['ACTION'])
             if row["DATE"] == f"{on_date}":
                 if row["CATEGORY"] == "Recordable Loss Time Injury":
@@ -312,60 +305,92 @@ def safety_ftd():
             elif colors["fire_mtd"] == True: color = "blue"
             else: color = "green"
         col1,col2=st.columns((1,1.7))
-        with col1:
-            st.markdown(f"""
-                <style>
-                    .svg-container {{
-                        width: 100%;
-                        max-width: 100%; /* Ensure the container is responsive */
-                        overflow: hidden; /* Hide the overflowing content */
-                        height: 100vh;
-                        text-align: center;
-                    }}
-                </style>
-                <div class="svg-container">
-                    <svg height="100%" width="100%">
-                        <text x="20%" y="50%" font-size="60vh" font-weight="bold" text-anchor="middle" alignment-baseline="middle" fill={color}>S</text>
-                        <text x="50%" y="15%" font-size="2vh" font-weight="bold" fill="black">LEGEND:</text>
-                        <text x="50%" y="25%" font-size="2vh" font-weight="bold" fill="red">RECORDABLE LOST TIME ENJURY</text>
-                        <text x="50%" y="35%" font-size="2vh" font-weight="bold" fill="darkred">RECORDABLE ACCIDENT</text>
-                        <text x="50%" y="45%" font-size="2vh" font-weight="bold" fill="orange">FIRST AID</text>
-                        <text x="50%" y="56%" font-size="2vh" font-weight="bold" fill="yellow">NEAR MISS</text>
-                        <text x="50%" y="65%" font-size="2vh" font-weight="bold" fill="blue">FIRE</text>
-                        <text x="50%" y="75%" font-size="2vh" font-weight="bold" fill="green">NO INCIDENT</text>
-                    </svg>
-                </div>
-                """, unsafe_allow_html=True)
+        with col1:  # Dynamic S letter
+            tree = ET.parse('resources\S.svg')
+            root = tree.getroot()
+            for i in range(1,32):
+                if i<10:
+                    target_element = root.find(f".//*[@id='untitled-u-day{i}']")
+                else:
+                    target_element = root.find(f".//*[@id='untitled-u-day{i}_']")
+                # Change the color of the element
+                if i == on_date.day:
+                    target_element.set('fill', color)
+                else:
+                    target_element.set('fill', 'gray')
+                # Save the modified SVG file
+                tree.write('daily_s.svg')
+            # Display the modified SVG using Streamlit
+            with open('daily_s.svg', 'r') as f:
+                svg = f.read()
+                b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+                html = r'<img src="data:image/svg+xml;base64,%s" style="height:17rem;"/>' % b64
+                st.write(f"""
+                    <style>
+                        .daily_d{{ font-size:1rem; margin:0rem; position:absolute; font-weight:bold;}}
+                    </style>
+                    <div>{html}
+                        <p class="daily_d" style='left:17rem; top:2rem; color:black;'>LEGEND:</p>
+                        <p class="daily_d" style='left:17rem; top:4rem; color:red;'>RECORDABLE LOST TIME ENJURY</p>
+                        <p class="daily_d" style='left:17rem; top:8rem; color:tomato;'>RECORDABLE ACCIDENT</p>
+                        <p class="daily_d" style='left:17rem; top:10rem; color:orange;'>FIRST AID</p>
+                        <p class="daily_d" style='left:17rem; top:12rem; color:yellow;'>NEAR MISS</p>
+                        <p class="daily_d" style='left:17rem; top:14rem; color:blue;'>FIRE</p>
+                        <p class="daily_d" style='left:17rem; top:16rem; color:green;'>NO INCIDENT</p>
+                    </div>""", unsafe_allow_html=True)
+            # st.markdown(f"""
+            #     <style>
+            #         .svg-container {{
+            #             width: 100%;
+            #             max-width: 100%; /* Ensure the container is responsive */
+            #             overflow: hidden; /* Hide the overflowing content */
+            #             height: 60rem;
+            #             text-align: center;
+            #         }}
+            #     </style>
+            #     <div class="svg-container">
+            #         <svg height="100%" width="100%">
+            #             <text x="20%" y="50%" font-size="60vh" font-weight="bold" text-anchor="middle" alignment-baseline="middle" fill={color}>S</text>
+            #             <text x="50%" y="15%" font-size="2vh" font-weight="bold" fill="black">LEGEND:</text>
+            #             <text x="50%" y="25%" font-size="2vh" font-weight="bold" fill="red">RECORDABLE LOST TIME ENJURY</text>
+            #             <text x="50%" y="35%" font-size="2vh" font-weight="bold" fill="darkred">RECORDABLE ACCIDENT</text>
+            #             <text x="50%" y="45%" font-size="2vh" font-weight="bold" fill="orange">FIRST AID</text>
+            #             <text x="50%" y="56%" font-size="2vh" font-weight="bold" fill="yellow">NEAR MISS</text>
+            #             <text x="50%" y="65%" font-size="2vh" font-weight="bold" fill="blue">FIRE</text>
+            #             <text x="50%" y="75%" font-size="2vh" font-weight="bold" fill="green">NO INCIDENT</text>
+            #         </svg>
+            #     </div>
+            #     """, unsafe_allow_html=True)
         with col2:
             st.markdown(f"""
                         <style>
                             .float-container {{ padding: 5px; }}
-                            .float-cat {{ width: 15%; font-size:0.7rem; float: left; height:8rem; text-align:center; padding: 10px; border: 2px solid black;}}
-                            .float-inc {{ width: 40%; font-size:0.7rem; float: left; height:8rem; text-align:center; padding: 2.5rem; border: 2px solid black;}}
-                            .float-date {{ width: 15%; font-size:0.7rem; float: left; font-weight:bold; height:8rem; text-align:center; padding: 10px; border: 2px solid black;}}
-                            .float-loc {{ width: 18%; font-size:0.7rem; float: left; font-weight:bold; height:8rem; text-align:center; padding: 10px; border: 2px solid black;}}
-                            .float-med {{ width: 12%; font-size:0.7rem; float: left; font-weight:bold; height:8rem; text-align:center; padding: 10px; border: 2px solid black;}}
-                            .float-pact {{ width: 20%; font-size:0.8rem; float: left; height:8rem; text-align:center; padding: 1rem; font-weight:bold; border: 2px solid black;}}
-                            .float-act {{ width: 80%; font-size:0.7rem; float: left; height:8rem; text-align:center; padding: 2rem; border: 2px solid black;}}
+                            .float-cat {{ width: 20%; font-size:0.7rem; float: left; height:5rem; text-align:center; padding: 0.3rem; border: 2px solid black;}}
+                            .float-inc {{ width: 35%; font-size:0.7rem; float: left; height:5rem; text-align:center; padding: 1rem.5rem; border: 2px solid black;}}
+                            .float-date {{ width: 15%; font-size:0.7rem; float: left; font-weight:bold; height:5rem; text-align:center; padding: 0.3rem; border: 2px solid black;}}
+                            .float-loc {{ width: 18%; font-size:0.7rem; float: left; font-weight:bold; height:5rem; text-align:center; padding: 0.3rem; border: 2px solid black;}}
+                            .float-med {{ width: 12%; font-size:0.7rem; float: left; font-weight:bold; height:5rem; text-align:center; padding: 0.3rem; border: 2px solid black;}}
+                            .float-pact {{ width: 20%; font-size:0.7rem; float: left; height:5rem; text-align:center; padding: 0.3rem; font-weight:bold; border: 2px solid black;}}
+                            .float-act {{ width: 80%; font-size:0.7rem; float: left; height:5rem; text-align:center; padding: 0.3rem; border: 2px solid black;}}
                             .heading5 {{font-size:0.7rem; font-weight:bold;}}
-                            .heading6 {{font-size:0.65rem; padding-top:0.8rem}}
+                            .heading6 {{font-size:0.65rem; padding-top:0.4rem}}
                             hr{{ margin:0rem; }}
                             @media (min-width: 1920px) and (max-width: 2860px) {{
                                 .float-container {{ padding: 5px; }}
-                                .float-cat {{ width: 15%; font-size:1.1rem; float: left; height:10rem; text-align:center; padding: 10px; border: 2px solid black;}}
+                                .float-cat {{ width: 15%; font-size:1.1rem; float: left; height:10rem; text-align:center; padding-top: 10px; border: 2px solid black;}}
                                 .float-inc {{ width: 40%; font-size:1rem; float: left; height:10rem; text-align:center; padding: 2.5rem; border: 2px solid black;}}
                                 .float-date {{ width: 15%; font-size:0.7rem; float: left; font-weight:bold; height:10rem; text-align:center; padding: 10px; border: 2px solid black;}}
                                 .float-loc {{ width: 18%; font-size:0.7rem; float: left; font-weight:bold; height:10rem; text-align:center; padding: 10px; border: 2px solid black;}}
                                 .float-med {{ width: 12%; font-size:0.7rem; float: left; font-weight:bold; height:10rem; text-align:center; padding: 10px; border: 2px solid black;}}
                                 .float-pact {{ width: 20%; font-size:1.1rem; float: left; height:10rem; text-align:center; padding: 1rem; font-weight:bold; border: 2px solid black;}}
                                 .float-act {{ width: 80%; font-size:1.1rem; float: left; height:10rem; text-align:center; padding: 2rem; border: 2px solid black;}}
-                                .heading6 {{font-size:1rem; padding-top:1rem}}
-                                .heading5 {{font-size:1rem; font-weight:bold;}}
+                                .heading6 {{font-size:0.6rem; padding:0.5rem}}
+                                .heading5 {{font-size:0.7rem; font-weight:bold;}}
                                 hr{{ margin:0rem; }}
                             }}
                         </style>
                 <div class="float-container">
-                    <div class="float-cat" style='background-color:red;color:white; font-weight:bold;'>
+                    <div class="float-cat" style='background-color:red; color:white; font-weight:bold;'>
                         <div class="green">Recordable Lost Time Injury, Recordable Accident (Latest)</div>
                     </div>
                     <div class="float-inc">
@@ -388,7 +413,7 @@ def safety_ftd():
                     </div>
                 </div>
                 <div class="float-container">
-                    <div class="float-pact">
+                    <div class="float-pact" >
                         Preventive Measures Implemented and Lesson Learned
                     </div>
                     <div class="float-act">
@@ -420,7 +445,7 @@ def safety_ftd():
                     </div>
                 </div>
                 <div class="float-container">
-                    <div class="float-pact">
+                    <div class="float-pact" >
                         Preventive Measures Implemented and Lesson Learned
                     </div>
                     <div class="float-act">
@@ -429,14 +454,14 @@ def safety_ftd():
                 </div>
                         
                 <div class="float-container">
-                    <div class="float-cat" style='background-color:yellow; font-weight:bold; padding-top:2rem;'>
-                        <div>Near_MIS
+                    <div class="float-cat" style='background-color:yellow; font-weight:bold; padding-top:1rem;'>
+                        <div>Near_MIS <br>
                             Fire_Det
                         </div>
                     </div>
                     <div class="float-inc">
-                        <p style='font-size:0.7rem;'>Near MIS: {Near_mis.incident}</p>
-                        <p style='font-size:0.7rem;'>Fire Details: {Fire_mtd.incident}</p>
+                        <p style='font-size:0.65rem;'>Near MIS: {Near_mis.incident}</p>
+                        <p style='font-size:0.65rem;'>Fire Details: {Fire_mtd.incident}</p>
                     </div>
                     <div class="float-date">
                         <div class="heading5">Time<hr>
@@ -458,7 +483,7 @@ def safety_ftd():
                     </div>
                 </div>
                 <div class="float-container">
-                    <div class="float-pact">
+                    <div class="float-pact" >
                         Preventive Measures Implemented and Lesson Learned
                     </div>
                     <div class="float-act">
@@ -473,8 +498,8 @@ def safety_ftd():
         pass
 
 def unsafe_incident_tracking(): 
-    month = datetime.now().month
-    year = datetime.now().year
+    month = datetime.datetime.now().month
+    year = datetime.datetime.now().year
     sconn = sqlite3.connect("database/safety.db")
     cur = sconn.cursor()
     if month < 10:
@@ -502,28 +527,28 @@ def unsafe_incident_tracking():
             Fire_mtd += 1
     col_indices_A, col_indices_B, col_indices_C, col_indices_D, col_indices_E = st.columns((1,1,1,1,1))
     with col_indices_A:
-        st.markdown(f"""<div style='background-color:tomato;margin:1rem;padding-top:0.7rem;border:1px solid black;height:12rem;border-radius:0.7rem;font-size:1.5rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>Recordable Lost Time Injury FTD:
-                <h4 style='color:white;font-weight:bold; padding-top:2rem;'>{Record_lost_time}</h4></div>""",unsafe_allow_html=True)
+        st.markdown(f"""<div style='background-color:red;margin:0.4rem;padding-top:0.7rem;border:1px solid black;height:5rem;border-radius:0.7rem;font-size:0.7rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>Recordable Lost Time Injury FTD:
+                <h4 style='color:white;font-weight:bold; padding-top:0.5rem;'>{Record_lost_time}</h4></div>""",unsafe_allow_html=True)
     with col_indices_B:
-        st.markdown(f"""<div style='background-color:red;margin:1rem;padding-top:0.7rem;border:1px solid black;height:12rem;border-radius:0.7rem;font-size:1.5rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>Recordable Accident FTD:
-                <h4 style='color:white;font-weight:bold; padding-top:2.3rem;'>{record_accident}</h4></div>""",unsafe_allow_html=True)
+        st.markdown(f"""<div style='background-color:tomato;margin:0.4rem;padding-top:0.7rem;border:1px solid black;height:5rem;border-radius:0.7rem;font-size:0.7rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>Recordable Accident FTD:
+                <h4 style='color:white;font-weight:bold; padding-top:0.5rem;'>{record_accident}</h4></div>""",unsafe_allow_html=True)
     with col_indices_C:
-        st.markdown(f"""<div style='background-color:orange;margin:1rem;padding-top:0.7rem;border:1px solid black;height:12rem;border-radius:0.7rem;font-size:1.5rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>First Aid FTD:
-                <h4 style='color:white;font-weight:bold; padding-top:3.5rem;'>{First_aid}</h4></div>""",unsafe_allow_html=True)
+        st.markdown(f"""<div style='background-color:orange;margin:0.4rem;padding-top:0.7rem;border:1px solid black;height:5rem;border-radius:0.7rem;font-size:0.7rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>First Aid FTD:
+                <h4 style='color:white;font-weight:bold; padding-top:0.5rem;'>{First_aid}</h4></div>""",unsafe_allow_html=True)
     with col_indices_D:
-        st.markdown(f"""<div style='background-color:yellow;margin:1rem;padding-top:0.7rem;border:1px solid black;height:12rem;border-radius:0.7rem;font-size:1.5rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>Near MIS FTD:
-                <h4 style='color:white;font-weight:bold; padding-top:3.5rem;'>{Near_mis}</h4></div>""",unsafe_allow_html=True)
+        st.markdown(f"""<div style='background-color:yellow;margin:0.4rem;padding-top:0.7rem;border:1px solid black;height:5rem;border-radius:0.7rem;font-size:0.7rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>Near MIS FTD:
+                <h4 style='color:white;font-weight:bold; padding-top:0.5rem;'>{Near_mis}</h4></div>""",unsafe_allow_html=True)
     with col_indices_E:
-        st.markdown(f"""<div style='background-color:skyblue;margin:1rem;padding-top:0.7rem;border:1px solid black;height:12rem;border-radius:0.7rem;font-size:1.5rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>Fire FTD:
-                <h4 style='color:white;font-weight:bold; padding-top:3.5rem;'>{Fire_mtd}</h4></div>""",unsafe_allow_html=True)
-    # st.markdown("---")
-    st.markdown("## Unsafe Incidents Trend :")
+        st.markdown(f"""<div style='background-color:skyblue;margin:0.4rem;padding-top:0.7rem;border:1px solid black;height:5rem;border-radius:0.7rem;font-size:0.7rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>Fire FTD:
+                <h4 style='color:white;font-weight:bold; padding-top:0.5rem;'>{Fire_mtd}</h4></div>""",unsafe_allow_html=True)
+    st.markdown("___")
+    
     with st.container():
         col1, col2 = st.columns((1, 1), gap="small")
         with col1:
-            current_month = datetime.now().month
-            current_year = datetime.now().year
-            current_date = datetime(year, month, 1)
+            # current_month = datetime.now().month
+            # current_year = datetime.now().year
+            current_date = datetime.datetime(year, month, 1)
 
             while current_date.weekday() != 0:  # 0 represents Monday
                 current_date += timedelta(days=1)
@@ -623,8 +648,8 @@ def unsafe_incident_tracking():
 
 def unsafe_practice_tracking():
     sconn = sqlite3.connect("database/safety.db")
-    month = datetime.now().month
-    year = datetime.now().year
+    month = datetime.datetime.now().month
+    year = datetime.datetime.now().year
     cur = sconn.cursor()
     if month < 10:
         df = pd.read_sql_query(f"Select * From 'UNSAFE PRACTICES TRACKING' WHERE strftime('%Y-%m', date) = '{year}-0{month}' ", sconn)
@@ -641,19 +666,25 @@ def unsafe_practice_tracking():
     with col_indices_2:
         col_indices_A, col_indices_B, col_indices_C = st.columns((2, 2, 2))
         with col_indices_A:
-            st.metric(":blue[Unsafe Practices]", len(df))
+            st.markdown(f"""<div class="custom" style='background-color:#f53527; text-align:center; font-size:1rem; border:1px solid black; border-radius:25px; font-weight:bold; padding:10px;'>Unsafe Practices
+                        <h3 style='color:white;'>{len(df)}</h3></div>""",unsafe_allow_html=True)
+            # st.metric(":blue[Unsafe Practices]", len(df))
         with col_indices_B:
-            st.metric("Unsafe Practices Closed", closed)
+            st.markdown(f"""<div class="custom" style='background-color:#4be373; text-align:center; font-size:1rem; border:1px solid black; border-radius:25px; font-weight:bold; padding:10px;'>Unsafe Practices Closed
+                        <h3 style='color:white;'>{closed}</h3></div>""",unsafe_allow_html=True)
+            # st.metric("Unsafe Practices Closed", closed)
         with col_indices_C:
-            st.metric("Closure Percentage", format((closed / len(df))*100, ".2f"))
+            st.markdown(f"""<div class="custom" style='background-color:#4be373; text-align:center; font-size:1rem; border:1px solid black; border-radius:25px; font-weight:bold; padding:10px;'>Closure Percentage
+                        <h3 style='color:white;'>{round((closed / len(df))*100)}</h3></div>""",unsafe_allow_html=True)
+            # st.metric("Closure Percentage", format((closed / len(df))*100, ".2f"))
     st.markdown("---")
-    st.markdown("## Unsafe Practices Trend :")
+    # st.markdown("## Unsafe Practices Trend :")
     with st.container():
         col1, col2 = st.columns((8, 8), gap="small")
         with col1:
-            current_month = datetime.now().month
-            current_year = datetime.now().year
-            current_date = datetime(year, month, 1)
+            current_month = datetime.datetime.now().month
+            current_year = datetime.datetime.now().year
+            current_date = datetime.datetime(year, month, 1)
 
             while current_date.weekday() != 0:  # 0 represents Monday
                 current_date += timedelta(days=1)
@@ -728,19 +759,6 @@ def unsafe_practice_tracking():
 
 #************************** Cost_FTD Start **************************#
 
-def productivity_data_fetch():
-    rows = None
-    with sqlite3.connect("database/cost.db") as conn:
-        cur = conn.cursor()
-        specific_date = on_date
-        query = "SELECT * FROM 'PRODUCTIVITY AND OEE' WHERE Date = ?"
-        cur.execute(query, (specific_date,))
-        rows = cur.fetchall()
-        # print(rows)
-        # print(type(rows[0]))
-        # st.write(rows[0][3])
-    return rows
-
 def breakdown_data_fetch():
     rows = None
     with sqlite3.connect("database/cost.db") as conn:
@@ -756,93 +774,163 @@ def breakdown_data_fetch():
 
 def cost_ftd():
     #******** Productivity and OEE Section ********#
-    class prod():
-        def __init__(self, target, actual, issue) -> None:
-            self.target = target
-            self.actual = actual
-            self.issue = issue
-            pass
-    raw = productivity_data_fetch()
-    human_prod = prod("no_data", "no_data", "['No issue',]")
-    plant_oee = prod("no_data", "no_data", "['No issue',]")
-    for i in raw:
-        category = i[2]
-        prod_data = prod(i[3], i[4], i[5])
-        if i[1] == f"{on_date}":
-            if category == 'HUMAN PRODUCTIVITY':
-                human_prod = prod_data
-            if category == 'PLANT AGGREGATE OEE':
-                plant_oee = prod_data
-    prs_human = eval(human_prod.issue)
-    prs_plant = eval(plant_oee.issue)
+    rows = fetch_data("PRODUCTIVITY AND OEE")
+    issue_data = fetch_data("COST ISSUE")
+    hp_issue = []
+    oee_issue = []
+    today_data = issue_data[issue_data["DATE"] == f"{on_date}"]
+    # st.write(today_data)
+    for index, row in today_data.iterrows():
+        # st.write(row[index])
+        if row["CATEGORY"] == "HUMAN PRODUCTIVITY":
+            issue = {
+                "issue": row["ISSUE"],
+                "raise_date": row["RAISE DATE"],
+                "target_date": row["TARGET DATE"],
+                "responsibility": row["RESPONSIBILITY"],
+                "action": row["ACTION"],
+                "status": row["STATUS"]
+            }
+            hp_issue.append(issue)
+        if row["CATEGORY"] == "PLANT AGGREGATE OEE":
+            issue = {
+                "issue": row["ISSUE"],
+                "raise_date": row["RAISE DATE"],
+                "target_date": row["TARGET DATE"],
+                "responsibility": row["RESPONSIBILITY"],
+                "action": row["ACTION"],
+                "status": row["STATUS"]
+            }
+            oee_issue.append(issue)
+    # st.write(issue_data)
+    # issues_list = [cost_issue(*row) for row in issue_data]
+    # for issue in issues_list:
+    #     print(issue)
+
+    human_productivity = cmp(0,0)
+    plant_agrigate = cmp(0,0)
+    for index, row in rows.iterrows():
+        if row["DATE"] == f"{on_date}":
+            if row["CATEGORY"] == "HUMAN PRODUCTIVITY":
+                human_productivity = cmp(row["TARGET"], row["ACTUAL"])
+            elif row["CATEGORY"] == "PLANT AGGREGATE OEE":
+                plant_agrigate = cmp(row["TARGET"], row["ACTUAL"])
     st.subheader(f"Status as on: {on_date}",divider="gray")
     col1,col2=st.columns((1,1.7))
     with col1:
-        color = 'green'
-        st.markdown(f"""
-            <center><div>
-                <svg class="svg-container" height="350" width="450">
-                    <text x="15" y="320" font-size="20rem" font-weight="bold" font-family="Arial" fill={color}>C</text>
-                    <text x="250" y="160" font-size="0.9rem" font-weight="bold" fill="black">LEGEND:</text>
-                    <text x="250" y="190" font-size="0.9rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
-                    <text x="250" y="220" font-size="0.9rem" font-weight="bold" fill="red">TARGET MISSED</text>
-                    <text x="250" y="250" font-size="0.9rem" font-weight="bold" fill="blue">PLANT OFF</text>
-                </svg>
-            </center></div>
-            """, unsafe_allow_html=True)
+        tree = ET.parse('resources\C.svg')
+        root = tree.getroot()
+        current_date = datetime.date.today()
+        total_days = (current_date.day)
+        row_data = fetch_data("PRODUCTIVITY AND OEE")
+        daily_data = row_data[row_data["DATE"] == f"{on_date}"]
+        filter_data = daily_data[daily_data["CATEGORY"] == "HUMAN PRODUCTIVITY"]
+        oe_target = filter_data["TARGET"]
+        oe_actual = filter_data["ACTUAL"]
+        comparison = np.where(oe_target > oe_actual, 0, 1)
+        color = 'gray'
+        if on_date.weekday() == 6: color = 'blue'
+        else:
+            for result in comparison:
+                color='red' if result == 0 else 'green'
+                # target_element.set('fill', color)
+        for i in range(1,32):
+            if i<10:
+                target_element = root.find(f".//*[@id='untitled-u-day{i}']")
+            else:
+                target_element = root.find(f".//*[@id='untitled-u-day{i}_']")
+            # Change the color of the element
+            if i == on_date.day:
+                target_element.set('fill', color)
+            else:
+                target_element.set('fill', 'gray')
+            # Save the modified SVG file
+            tree.write('daily_c.svg')
+        # Display the modified SVG using Streamlit
+        with open('daily_c.svg', 'r') as f:
+            svg = f.read()
+            b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+            html = r'<img src="data:image/svg+xml;base64,%s" style="height:17rem;"/>' % b64
+            st.write(f"""
+                <style>
+                    .daily_c{{ font-size:1rem; margin:0rem; position:absolute; font-weight:bold;}}
+                </style>
+                <div>{html}
+                    <p class="daily_c" style='left:20rem; top:7rem; color:black;'>LEGEND:</p>
+                    <p class="daily_c" style='left:20rem; top:8.5rem; color:green;'>TARGET ACHIEVED</p>
+                    <p class="daily_c" style='left:20rem; top:10rem; color:red;'>TARGET MISSED</p>
+                    <p class="daily_c" style='left:20rem; top:11.5rem; color:blue;'>PLANT OFF</p>
+                </div>""", unsafe_allow_html=True)
+        # color = 'green'
+        # st.markdown(f"""
+        #     <center><div>
+        #         <svg class="svg-container" height="350" width="450">
+        #             <text x="15" y="320" font-size="20rem" font-weight="bold" font-family="Arial" fill={color}>C</text>
+        #             <text x="250" y="160" font-size="0.9rem" font-weight="bold" fill="black">LEGEND:</text>
+        #             <text x="250" y="190" font-size="0.9rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
+        #             <text x="250" y="220" font-size="0.9rem" font-weight="bold" fill="red">TARGET MISSED</text>
+        #             <text x="250" y="250" font-size="0.9rem" font-weight="bold" fill="blue">PLANT OFF</text>
+        #         </svg>
+        #     </center></div>
+        #     """, unsafe_allow_html=True)
     with col2:
-        st.subheader("PRODUCTIVITY AND OEE")
+        # st.subheader("PRODUCTIVITY AND OEE")
         blk1,blk2=st.columns((1,1))
         with blk1:
-            st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:8rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>HUMAN PRODUCTIVITY<hr>
+            st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:8rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>HUMAN PRODUCTIVITY<hr style='margin:0em;'>
                             <div style='content: "";height:72%; display: table; display:flex;clear: both;'>
                                 <div style='float: left;width: 50%;padding: 1rem 2rem;font-size:1rem;'>Target
-                                    <h6>{human_prod.target}</h6>
+                                    <h6>{human_productivity.target}</h6>
                                 </div>
                                 <div style='border-left: 1px solid lightgray; height: 100%;'></div>
                                 <div style='float: left; width: 50%;padding: 1rem 1.5rem;font-size:1rem;'>Actual
-                                    <h6>{human_prod.actual}</h6>
+                                    <h6>{human_productivity.actual}</h6>
                                 </div>
                             </div>
                             </div>""",unsafe_allow_html=True)
-            st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:8rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>PLANT AGGREGATE OEE<hr>
+            st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:8rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>PLANT AGGREGATE OEE<hr style='margin:0em;'>
                             <div style='content: center; height:72%; display: table;display:flex;clear: both;'>
                                 <div style='float: left;test-align:center;width: 50%;padding:1rem 2rem;font-size:1rem;'>Target
-                                    <h6>{plant_oee.target}</h6>
+                                    <h6>{plant_agrigate.target}</h6>
                                 </div>
                                 <div style='border-left: 1px solid lightgray; height: 100%;'></div>
                                 <div style='float: right;test-align:center;width: 50%;padding:1rem 1.5rem;font-size:1rem;'>Actual
-                                    <h6>{plant_oee.actual}</h6>
+                                    <h6>{plant_agrigate.actual}</h6>
                                 </div>
                             </div>
                             </div>""",unsafe_allow_html=True)
         with blk2:
             st.markdown(f"""
-            <style>
-                    .float-container {{  padding: 5px;   }}
-                    .float-bd1 {{width: 100%; font-weight:bold; font-size:1rem; float: left; word-wrap:break-word; height:10rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;
-                    }}
-                    .float-hd1 {{width: 100%; font-size:1rem; color:black; float: left; word-wrap:break-word; height:10rem; text-align:center; padding: 10px; border: 1px solid black;
-                    }}
-                    .par {{padding-top:0.5rem; line-height:0.1rem; font-size:0.7rem; color:black; }}
-                    hr{{ margin:0em; }}
-            </style>
-            <div class="float-container">
-                <div class="float-bd1">Top 3 Productivity Problems<hr style='margin:0.6rem 0rem;'>
-                        <p class="par">{prs_human}</p>
+                <style>
+                        .float-container {{  padding: 5px;   }}
+                        .float-bd1 {{width: 100%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:9rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;
+                        }}
+                        .par {{padding-top:0.2rem; line-height:0.05rem; font-size:0.7rem; color:black; }}
+                        hr{{ margin:0em; }}
+                </style>
+                <div class="float-container">
+                    <div class="float-bd1">Top 3 Productivity Problems<hr style='margin:0.6rem 0rem;'>
+                            <p class="par">{hp_issue[0]["issue"]}</p>
+                            <p class="par">{hp_issue[1]["issue"]}</p>
+                            <p class="par">{hp_issue[2]["issue"]}</p>
+                    </div>
                 </div>
-            </div>
-            <div class="float-container">
-                <div class="float-bd1">Top 3 OEE Related Problems<hr style='margin:0.6rem 0rem;'>
-                    <p class="par">{prs_plant}</p>
+            """,unsafe_allow_html=True)
+            st.markdown(f"""
+                <div class="float-container">
+                    <div class="float-bd1">Top 3 OEE Related Problems<hr style='margin:0.6rem 0rem;'>
+                        <p class="par">{oee_issue[0]["issue"]}</p>
+                        <p class="par">{oee_issue[1]["issue"]}</p>
+                        <p class="par">{oee_issue[2]["issue"]}</p>
+                    </div>
                 </div>
-            </div>
-        """,unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
         
-        #******** Machine Breakdown TIme Section ********#
-        raw1 = breakdown_data_fetch()
-        # st.table(raw1)
-    st.subheader("MACHINE BREAKDOWN TIME")
+    #******** Machine Breakdown TIme Section ********#
+    breakdown = fetch_data("MACHINE BREAKDOWN TIME")
+
+    # st.table(raw1)
+    # st.subheader("MACHINE BREAKDOWN TIME")
     st.markdown("""
         <style>
                 .float-container {  padding: 5px;   }
@@ -892,7 +980,7 @@ def cost_ftd():
     ,unsafe_allow_html=True)
 
     #******** RAW Material Section ********#
-    st.subheader("RAW MATERIAL P.D.I.")
+    # st.subheader("RAW MATERIAL P.D.I.")
     st.markdown("""
             <style>
                     .float-container {  padding: 5px;   }
@@ -931,7 +1019,6 @@ def cost_ftd():
 
 def productivity_oee():
     current_date()
-
     blk1,blk2=st.columns((1,1))
     with blk1:
         st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:8rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>HUMAN PRODUCTIVITY<hr>
@@ -987,7 +1074,10 @@ def productivity_oee():
     .replace("OEE_prblm_1",(str("OEE_Problem_1")))
     .replace("OEE_prblm_2",(str("OEE_Problem_2")))
     .replace("OEE_prblm_3",(str("OEE_Problem_3"))),unsafe_allow_html=True)
-
+    
+    # st.subheader("Productivity and OEE Trend")
+    bar_graph("PRODUCTIVITY AND OEE")
+    
 def mach_break_time():
     h1_col1, h1_col2 = st.columns((1,1.5))
     with h1_col1:
@@ -1145,18 +1235,61 @@ def delivery_ftd():
     st.subheader(f"Status as on: {on_date}", divider="gray")
     col1,col2=st.columns((1,1.9))
     with col1:
-        color = 'blue'
-        st.markdown(f"""
-            <center><div>
-                <svg class="svg-container" height="350" width="450">
-                    <text x="20" y="320" font-size="20rem" font-weight="bold" font-family="Arial" fill={color}>D</text>
-                    <text x="250" y="160" font-size="0.9rem" font-weight="bold" fill="black">LEGEND:</text>
-                    <text x="250" y="190" font-size="0.9rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
-                    <text x="250" y="220" font-size="0.9rem" font-weight="bold" fill="red">TARGET MISSED</text>
-                    <text x="250" y="250" font-size="0.9rem" font-weight="bold" fill="blue">PLANT OFF</text>
-                </svg>
-            </center></div>
-            """, unsafe_allow_html=True)
+        tree = ET.parse('resources\D.svg')
+        root = tree.getroot()
+        current_date = datetime.date.today()
+        total_days = (current_date.day)
+        row_data = fetch_data("OTIF_CC PDI")
+        daily_data = row_data[row_data["DATE"] == f"{on_date}"]
+        filter_data = daily_data[daily_data["CATEGORY"] == "OE"]
+        oe_target = filter_data["TARGET"]
+        oe_actual = filter_data["ACTUAL"]
+        comparison = np.where(oe_target > oe_actual, 0, 1)
+        color = 'gray'
+        if on_date.weekday() == 6: color = 'blue'
+        else:
+            for result in comparison:
+                color='red' if result == 0 else 'green'
+                # target_element.set('fill', color)
+        for i in range(1,32):
+            if i<10:
+                target_element = root.find(f".//*[@id='d-u-day{i}']")
+            else:
+                target_element = root.find(f".//*[@id='d-u-day{i}_']")
+            # Change the color of the element
+            if i == on_date.day:
+                target_element.set('fill', color)
+            else:
+                target_element.set('fill', 'gray')
+            # Save the modified SVG file
+            tree.write('daily_d.svg')
+        # Display the modified SVG using Streamlit
+        with open('daily_d.svg', 'r') as f:
+            svg = f.read()
+            b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+            html = r'<img src="data:image/svg+xml;base64,%s" style="height:17rem;"/>' % b64
+            st.write(f"""
+                <style>
+                    .daily_d{{ font-size:1rem; margin:0rem; position:absolute; font-weight:bold;}}
+                </style>
+                <div>{html}
+                    <p class="daily_d" style='left:17rem; top:7rem; color:black;'>LEGEND:</p>
+                    <p class="daily_d" style='left:17rem; top:8.5rem; color:green;'>TARGET ACHIEVED</p>
+                    <p class="daily_d" style='left:17rem; top:10rem; color:red;'>TARGET MISSED</p>
+                    <p class="daily_d" style='left:17rem; top:11.5rem; color:blue;'>PLANT OFF</p>
+                </div>""", unsafe_allow_html=True)
+        # color = 'blue'
+        # st.markdown(f"""
+        #     <center><div>
+        #         <svg class="svg-container" height="350" width="450">
+        #             <text x="20" y="320" font-size="20rem" font-weight="bold" font-family="Arial" fill={color}>D</text>
+        #             <text x="250" y="160" font-size="0.9rem" font-weight="bold" fill="black">LEGEND:</text>
+        #             <text x="250" y="190" font-size="0.9rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
+        #             <text x="250" y="220" font-size="0.9rem" font-weight="bold" fill="red">TARGET MISSED</text>
+        #             <text x="250" y="250" font-size="0.9rem" font-weight="bold" fill="blue">PLANT OFF</text>
+        #         </svg>
+        #     </center></div>
+        #     """, unsafe_allow_html=True)
         # st.markdown(f"""
         #     <style>
         #         /* Define your custom CSS styles here */
@@ -1788,6 +1921,7 @@ def critcal_customer_pdi():
 #************************** Quality_FTD Start **************************#
 def quality_ftd():
     st.subheader(f"Status as on: {on_date}",divider="gray")
+    # st.markdown("___")
     plant_ppm = cmp(0,0)
     supplier_ppm = cmp(0,0)
     complaint_data = fetch_data("CUSTOMER COMPLAINTS")
@@ -1805,36 +1939,74 @@ def quality_ftd():
     col1,col2=st.columns((1,1.8))
     # ********** Dynamic Q Letter ********** #
     with col1:
-        if on_date.weekday() == 6: day = "Sunday"
-        else: day = "it's not sunday"
-        # date=datetime.now().date().strftime("%d-%m-%Y")
-        if len(df) > 0: color = 'red'
-        elif day == "Sunday": color = 'blue'
-        else: color = 'green'
-        st.markdown(f"""
-            <style>
-                /* Define your custom CSS styles here */
-                .svg-container {{
-                    width: 100%;
-                    max-width: 100%; /* Ensure the container is responsive */
-                    overflow: hidden; /* Hide the overflowing content */
-                    height: 100vh;
-                    text-align: center;
-                }}
-            </style>
-            <div class="svg-container">
-                <svg height="100%" width="100%">
-                    <text x="25%" y="50%" font-size="60vh" font-weight="bold" text-anchor="middle" alignment-baseline="middle" fill={color}>Q</text>
-                    <text x="55%" y="35%" font-size="2vh" font-weight="bold" fill="black">LEGEND:</text>
-                    <text x="55%" y="45%" font-size="2vh" font-weight="bold" fill="green">TARGET ACHIEVED</text>
-                    <text x="55%" y="55%" font-size="2vh" font-weight="bold" fill="red">TARGET MISSED</text>
-                    <text x="55%" y="65%" font-size="2vh" font-weight="bold" fill="blue">PLANT OFF</text>
-                </svg>
-            </div>
-            """, unsafe_allow_html=True)
+        tree = ET.parse('resources\Q.svg')
+        root = tree.getroot()
+        current_date = datetime.date.today()
+        row_data = fetch_data("CUSTOMER COMPLAINTS")
+        daily_data = row_data[row_data["DATE"] == f"{on_date}"]
+        color = 'gray'
+        count_problem = len(daily_data["COMPLAINT"])
+        if on_date.weekday() == 6: color = "blue"
+        else:
+            if count_problem > 1: color = 'red'
+            elif count_problem <= 1: color = 'green'
+        for i in range(1,32):
+            if i<10:
+                target_element = root.find(f".//*[@id='q-u-day{i}']")
+            else:
+                target_element = root.find(f".//*[@id='q-u-day{i}_']")
+            # Change the color of the element
+            if i == on_date.day:
+                target_element.set('fill', color)
+            else:
+                target_element.set('fill', 'gray')
+            # Save the modified SVG file
+            tree.write('daily_q.svg')
+        # Display the modified SVG using Streamlit
+        with open('daily_q.svg', 'r') as f:
+            svg = f.read()
+            b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+            html = r'<img src="data:image/svg+xml;base64,%s" style="height:17rem;"/>' % b64
+            st.write(f"""
+                <style>
+                    .daily_d{{ font-size:1rem; margin:0rem; position:absolute; font-weight:bold;}}
+                </style>
+                <div>{html}
+                    <p class="daily_d" style='left:17rem; top:7rem; color:black;'>LEGEND:</p>
+                    <p class="daily_d" style='left:17rem; top:8.5rem; color:green;'>TARGET ACHIEVED</p>
+                    <p class="daily_d" style='left:17rem; top:10rem; color:red;'>TARGET MISSED</p>
+                    <p class="daily_d" style='left:17rem; top:11.5rem; color:blue;'>PLANT OFF</p>
+                </div>""", unsafe_allow_html=True)
+        # if on_date.weekday() == 6: day = "Sunday"
+        # else: day = "it's not sunday"
+        # # date=datetime.now().date().strftime("%d-%m-%Y")
+        # if len(df) > 0: color = 'red'
+        # elif day == "Sunday": color = 'blue'
+        # else: color = 'green'
+        # st.markdown(f"""
+        #     <style>
+        #         /* Define your custom CSS styles here */
+        #         .svg-container {{
+        #             width: 100%;
+        #             max-width: 100%; /* Ensure the container is responsive */
+        #             overflow: hidden; /* Hide the overflowing content */
+        #             height: 40rem;
+        #             text-align: center;
+        #         }}
+        #     </style>
+        #     <div class="svg-container">
+        #         <svg height="100%" width="100%">
+        #             <text x="25%" y="50%" font-size="40rem" font-weight="bold" text-anchor="middle" alignment-baseline="middle" fill={color}>Q</text>
+        #             <text x="55%" y="35%" font-size="2vh" font-weight="bold" fill="black">LEGEND:</text>
+        #             <text x="55%" y="45%" font-size="2vh" font-weight="bold" fill="green">TARGET ACHIEVED</text>
+        #             <text x="55%" y="55%" font-size="2vh" font-weight="bold" fill="red">TARGET MISSED</text>
+        #             <text x="55%" y="65%" font-size="2vh" font-weight="bold" fill="blue">PLANT OFF</text>
+        #         </svg>
+        #     </div>
+        #     """, unsafe_allow_html=True)
     with col2:
         # **************** Customer Complaints **************************#
-        st.subheader(f"Today'S Customer Complaints: {len(df)}")
+        st.markdown(f"##### Today'S Customer Complaints: {len(df)}")
         data_df = df[["COMPLAINT", "RAISE DATE", "RESPONSIBILITY", "TARGET DATE", "STATUS"]]
         def format_status(status):
             if status == "Open":
@@ -1845,8 +2017,8 @@ def quality_ftd():
                 return 'background-color: #e9f76a'
             else:
                 return ''
-        data_df['STATUS'] = data_df['STATUS'].apply(lambda x: f'<span style="{format_status(x)}">{x}</span>')
-        # data_df = data_df.style.applymap(format_status, subset=['STATUS'])
+        # data_df['STATUS'] = data_df['STATUS'].apply(lambda x: f'<span style="{format_status(x)}">{x}</span>')
+        data_df = data_df.style.applymap(format_status, subset=['STATUS'])
         st.write(data_df.to_html(escape=False, index=False), unsafe_allow_html=True)
         # st.data_editor(df[["COMPLAINT", "RAISE DATE", "RESPONSIBILITY", "TARGET DATE", "STATUS"]], hide_index=True, width=1500, height=245)
         # st.data_editor(df[["COMPLAINT", "RAISE DATE", "CLOSING DATE", "STATUS"]], hide_index=True, width=1600)
@@ -1901,25 +2073,22 @@ def quality_ftd():
         st.markdown("""<div style='padding-top:1.5rem;'><h4>PLANT PPM & SUPPLIER PPM</h4></div>""",unsafe_allow_html=True)
         plant_prob = []
         supplier_prob = []
-        for index, row in ppm_problem.iterrows():
-            if row["DATE"] == f"{on_date}":
-                if row["CATEGORY"] == "PLANT PPM":
-                    issue = {
-                        "PROBLEM": row["PROBLEM"],
-                        "PART_LINE": row["PART_LINE"],
-                        "REJ_QTY": row["REJ_QTY"]
-                    }
-                    plant_prob.append(issue)
-                    # plant_prob.append(q_issue(row["PROBLEM"], row["PART_LINE"], row["REJ_QTY"]))
-                if row["CATEGORY"] == "SUPPLIER PPM":
-                    issue = {
-                        "PROBLEM": row["PROBLEM"],
-                        "PART_LINE": row["PART_LINE"],
-                        "REJ_QTY": row["REJ_QTY"]
-                    }
-                    supplier_prob.append(issue)
-                    # supplier_prob.append(q_issue(row["PROBLEM"], row["PART_LINE"], row["REJ_QTY"]))
-        # st.write(plant_prob.show())
+        filter_problem = ppm_problem[ppm_problem["DATE"] == f"{on_date}"]
+        for index, row in filter_problem.iterrows():
+            if row["CATEGORY"] == "PLANT PPM":
+                issue = {
+                    "PROBLEM": row["PROBLEM"],
+                    "PART_LINE": row["PART_LINE"],
+                    "REJ_QTY": row["REJ_QTY"]
+                }
+                plant_prob.append(issue)
+            if row["CATEGORY"] == "SUPPLIER PPM":
+                issue = {
+                    "PROBLEM": row["PROBLEM"],
+                    "PART_LINE": row["PART_LINE"],
+                    "REJ_QTY": row["REJ_QTY"]
+                }
+                supplier_prob.append(issue)
         cl1,cl2=st.columns((1,2))
         with cl1:
             st.markdown(f"""<div style='margin:1rem;font-size:1.3rem;padding-top:0.7rem;border:1px solid black;height:8rem;border-radius:0.7rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>PLANT PPM<hr style='margin:0em;'>
@@ -2100,7 +2269,6 @@ def customer_complaint():
         def show(self):
             return st.write(f"Complaint is {self.comp} raise on date {self.rais} and will close on {self.close} and now status is {self.stat}")
     datas = []
-    current_date()
     df = fetch_data("CUSTOMER COMPLAINTS")
     df['DATE'] = pd.to_datetime(df['DATE'])
     current_month = pd.Timestamp('now').to_period('M')
@@ -2427,3 +2595,210 @@ def ftp_rejection():
         </div>
     """, unsafe_allow_html=True)
 #************************** Quality_FTD End **************************#
+
+
+#************************** Letters Start **************************#
+
+def S_letter():
+    # Parse the existing SVG file
+    tree = ET.parse('resources\S.svg')
+    root = tree.getroot()
+    current_date = datetime.date.today()
+    # days_in_current_month = calendar.monthrange(current_year, current_month)[1]   #for check total days in current month
+    total_days = (current_date.day)
+    # st.write(total_days)
+
+    row_data = fetch_data("INCIDENCES DETAILS")
+    first_day_of_month = current_date.replace(day=1)
+    days_to_add = 0
+    for i in range(1, total_days):
+        colors = {
+                "record_lost_time": False, "record_accident": False,
+                "first_aid": False, "near_mis": False, "fire_mtd": False
+            }
+        if i < 10:
+            target_element = root.find(f".//*[@id='untitled-u-day{i}']")
+        else:
+            target_element = root.find(f".//*[@id='untitled-u-day{i}_']")
+        # st.write(days_to_add)
+        new_date = first_day_of_month + datetime.timedelta(days=days_to_add)
+        days_to_add += 1
+        df = row_data[row_data["DATE"] == f"{new_date}"]
+        for index, row in df.iterrows():
+            if row["CATEGORY"] == "Recordable Loss Time Injury":
+                colors["record_lost_time"] = True
+            if row["CATEGORY"] == "Recordable Accident":
+                colors["record_accident"] = True
+            if row["CATEGORY"] == "First Aid":
+                colors["first_aid"] = True
+            if row["CATEGORY"] == "Near MIS":
+                colors["near_mis"] = True
+            if row["CATEGORY"] == "Fire":
+                colors["fire_mtd"] = True
+            # else:
+            #     color = 'gray'
+            
+            if new_date.weekday() == 6: color = "blue"
+            else:
+                if colors["record_lost_time"] == True: color = "red"
+                elif colors["record_accident"] == True: color = "darkred"
+                elif colors["first_aid"] == True: color = "orange"
+                elif colors["near_mis"] == True: color = "yellow"
+                elif colors["fire_mtd"] == True: color = "blue"
+                else: color = "green"
+            # st.write(row["CATEGORY"])
+            target_element.set('fill', color)
+            tree.write('s_out.svg')
+
+    # Display the modified SVG using Streamlit
+    with open('s_out.svg', 'r') as f:
+        svg = f.read()
+        b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+        html = r'<img src="data:image/svg+xml;base64,%s" style="height:10rem;"/>' % b64
+        st.write(f"""
+                 <style>
+                    .s{{ font-size:0.6rem; margin:0rem; position:absolute; font-weight:bold;}}
+                 </style>
+                 <div>{html}
+                    <p class="s" style='left:15rem; top:1rem; color:black;'>LEGEND:</p>
+                    <p class="s" style='left:15rem; top:2.5rem; color:red;'>RECORDABLE LOST TIME ENJURY</p>
+                    <p class="s" style='left:15rem; top:4rem; color:darkred;'>RECORDABLE ACCIDENT</p>
+                    <p class="s" style='left:15rem; top:5.5rem; color:orange;'>FIRST AID</p>
+                    <p class="s" style='left:15rem; top:7rem; color:yellow;'>NEAR MISS</p>
+                    <p class="s" style='left:15rem; top:8.5rem; color:blue;'>FIRE</p>
+                    <p class="s" style='left:15rem; top:10rem; color:green;'>NO INCIDENT</p>
+                 </div>""", unsafe_allow_html=True)
+        
+
+def Q_letter():
+    # Parse the existing SVG file
+    tree = ET.parse('resources\Q.svg')
+    root = tree.getroot()
+    current_date = datetime.date.today()
+    total_days = (current_date.day)
+    row_data = fetch_data("CUSTOMER COMPLAINTS")
+    first_day_of_month = current_date.replace(day=1)
+    days_to_add = 0
+    for i in range(1, total_days):
+        if i < 10:
+            target_element = root.find(f".//*[@id='q-u-day{i}']")
+        else:
+            target_element = root.find(f".//*[@id='q-u-day{i}_']")
+        new_date = first_day_of_month + datetime.timedelta(days=days_to_add)
+        days_to_add += 1
+        df = row_data[row_data["DATE"] == f"{new_date}"]
+        count_problem = len(df["COMPLAINT"])
+        if new_date.weekday() == 6: color = "blue"
+        else:
+            if count_problem > 1: color = 'red'
+            elif count_problem <= 1: color = 'green'
+            else: color = "gray"
+        target_element.set('fill', color)
+        tree.write('q.svg')
+    # Display the modified SVG using Streamlit
+    with open('q.svg', 'r') as f:
+        svg = f.read()
+        b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+        html = r'<img src="data:image/svg+xml;base64,%s" style="height:10rem;"/>' % b64
+        st.write(f"""
+            <style>
+                .s{{ font-size:0.6rem; margin:0rem; position:absolute; font-weight:bold;}}
+            </style>
+            <div>{html}
+                <p class="s" style='left:15rem; top:1rem; color:black;'>LEGEND:</p>
+                <p class="s" style='left:15rem; top:2.5rem; color:green;'>TARGET ACHIEVED</p>
+                <p class="s" style='left:15rem; top:4rem; color:red;'>TARGET MISSED</p>
+                <p class="s" style='left:15rem; top:5.5rem; color:blue;'>PLANT OFF</p>
+            </div>""", unsafe_allow_html=True)
+        
+
+def D_letter():
+    # Parse the existing SVG file
+    tree = ET.parse('resources\D.svg')
+    root = tree.getroot()
+    current_date = datetime.date.today()
+    total_days = (current_date.day)
+    row_data = fetch_data("OTIF_CC PDI")
+    first_day_of_month = current_date.replace(day=1)
+    days_to_add = 0
+    for i in range(1, total_days):
+        if i < 10:
+            target_element = root.find(f".//*[@id='d-u-day{i}']")
+        else:
+            target_element = root.find(f".//*[@id='d-u-day{i}_']")
+        new_date = first_day_of_month + datetime.timedelta(days=days_to_add)
+        days_to_add += 1
+        df = row_data[row_data["DATE"] == f"{new_date}"]
+        filter_data = df[df["CATEGORY"] == "OE"]
+        oe_target = filter_data["TARGET"]
+        oe_actual = filter_data["ACTUAL"]
+        comparison = np.where(oe_target > oe_actual, 'red', 'green')
+        if new_date.weekday() == 6: target_element.set('fill', "blue")
+        else:
+            for result in comparison:
+                # st.write(result)
+                color = result
+                target_element.set('fill', color)
+            tree.write('d.svg')
+    # Display the modified SVG using Streamlit
+    with open('d.svg', 'r') as f:
+        svg = f.read()
+        b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+        html = r'<img src="data:image/svg+xml;base64,%s" style="height:10rem;"/>' % b64
+        st.write(f"""
+            <style>
+                .s{{ font-size:0.6rem; margin:0rem; position:absolute; font-weight:bold;}}
+            </style>
+            <div>{html}
+                <p class="s" style='left:15rem; top:1rem; color:black;'>LEGEND:</p>
+                <p class="s" style='left:15rem; top:2.5rem; color:green;'>TARGET ACHIEVED</p>
+                <p class="s" style='left:15rem; top:4rem; color:red;'>TARGET MISSED</p>
+                <p class="s" style='left:15rem; top:5.5rem; color:blue;'>PLANT OFF</p>
+            </div>""", unsafe_allow_html=True)
+
+        
+def C_letter():
+    # Parse the existing SVG file
+    tree = ET.parse('resources\C.svg')
+    root = tree.getroot()
+    current_date = datetime.date.today()
+    total_days = (current_date.day)
+    row_data = fetch_data("PRODUCTIVITY AND OEE")
+    first_day_of_month = current_date.replace(day=1)
+    days_to_add = 0
+    for i in range(1, total_days):
+        if i < 10:
+            target_element = root.find(f".//*[@id='untitled-u-day{i}']")
+        else:
+            target_element = root.find(f".//*[@id='untitled-u-day{i}_']")
+        # st.write(days_to_add)
+        new_date = first_day_of_month + datetime.timedelta(days=days_to_add)
+        days_to_add += 1
+        df = row_data[row_data["DATE"] == f"{new_date}"]
+        filter_data = df[df["CATEGORY"] == "HUMAN PRODUCTIVITY"]
+        oe_target = filter_data["TARGET"]
+        oe_actual = filter_data["ACTUAL"]
+        comparison = np.where(oe_target > oe_actual, 'red', 'green')
+        if new_date.weekday() == 6: target_element.set('fill', "blue")
+        else:
+            for result in comparison:
+                color = result
+                target_element.set('fill', color)
+            tree.write('c.svg')
+    # Display the modified SVG using Streamlit
+    with open('c.svg', 'r') as f:
+        svg = f.read()
+        b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+        html = r'<img src="data:image/svg+xml;base64,%s" style="height:10rem;"/>' % b64
+        st.write(f"""
+            <style>
+                .s{{ font-size:0.6rem; margin:0rem; position:absolute; font-weight:bold;}}
+            </style>
+            <div>{html}
+                <p class="s" style='left:15rem; top:1rem; color:black;'>LEGEND:</p>
+                <p class="s" style='left:15rem; top:2.5rem; color:green;'>TARGET ACHIEVED</p>
+                <p class="s" style='left:15rem; top:4rem; color:red;'>TARGET MISSED</p>
+                <p class="s" style='left:15rem; top:5.5rem; color:blue;'>PLANT OFF</p>
+            </div>""", unsafe_allow_html=True)
+        
+#************************** Letters End **************************#

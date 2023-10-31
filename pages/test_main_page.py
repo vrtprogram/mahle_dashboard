@@ -2,7 +2,8 @@ import streamlit as st
 import base64
 import os
 from streamlit_extras.switch_page_button import switch_page
-from methods.main import layout, S_letter, Q_letter, D_letter, C_letter
+from methods.main import layout, fetch_data
+from xml.etree import ElementTree as ET
 
 
 st.cache_data()
@@ -22,7 +23,103 @@ def main():
             color = colors[1]
             # color = "red"
             st.markdown("""<center><div style='background-color:lightgray; width:95%; font-weight:bold;'>Safety</div></center>""", unsafe_allow_html=True)
-            S_letter()
+            st.markdown(f"""
+                <style>
+                    /* Define your custom CSS styles here */
+                    .svg-container {{
+                        max-width: 100%; /* Ensure the container is responsive */
+                        overflow: hidden; /* Hide the overflowing content */
+                    }}
+                </style>
+                <center><div> 
+                    <svg class="svg-container" height="150" width="450">
+                        <text x="20" y="130" font-size="10rem" font-weight="bold" font-family="Arial" fill={color}>S</text>
+                        <text x="220" y="30" font-size="0.65rem" font-weight="bold" fill="black">LEGEND:</text>
+                        <text x="220" y="50" font-size="0.65rem" font-weight="bold" fill="red">RECORDABLE LOST TIME ENJURY</text>
+                        <text x="220" y="70" font-size="0.65rem" font-weight="bold" fill="darkred">RECORDABLE ACCIDENT</text>
+                        <text x="220" y="90" font-size="0.65rem" font-weight="bold" fill="orange">FIRST AID</text>
+                        <text x="220" y="110" font-size="0.65rem" font-weight="bold" fill="yellow">NEAR MISS</text>
+                        <text x="220" y="130" font-size="0.65rem" font-weight="bold" fill="blue">FIRE</text>
+                        <text x="220" y="150" font-size="0.65rem" font-weight="bold" fill="green">NO INCIDENT</text>
+                    </svg>
+                </div></center>
+                """, unsafe_allow_html=True)
+            letter_color = 'green'
+            # st.markdown(f"""
+            #     <style>
+            #         .container {{
+            #             width: 200px;
+            #             height: 16.3rem;
+            #             position: relative;
+            #         }}
+            #         .block {{
+            #             background-color: blue;
+            #             width:1.2rem;
+            #         }}
+            #         .block1{{ position: relative; left: 15rem; background-color: {letter_color};}}
+            #         .block2{{ position: relative; left: 13.75rem; bottom: 1.6rem;}}
+            #         .block3{{ position: relative; left: 12.5rem; bottom: 3.2rem;}}
+            #         .block4{{ position: relative; left: 11.27rem; bottom: 4.8rem;}}
+            #         .block5{{ position: relative; left: 10.1rem; bottom: 6.4rem;}}
+            #         .block6{{ position: relative; left: 8.895rem; bottom: 8rem;}}
+            #         .block7{{ position: relative; left: 7.7rem; bottom: 9.6rem;}}
+            #         .block8{{ position: relative; left: 7.7rem; bottom: 9.6rem;}}
+            #         .block9{{ position: relative; left: 7.7rem; bottom: 9.6rem;}}
+            #         .block10{{ position: relative; left: 7.7rem; bottom: 9.6rem;}}
+            #         .block11{{ position: relative; left: 7.7rem; bottom: 9.6rem;}}
+            #         .block12{{ position: relative; left: 7.7rem; bottom: 9.6rem}}
+            #         .block13{{ position: relative; left: 8.9rem; bottom: 11.18rem;}}
+            #         .block14{{ position: relative; left: 10.1rem; bottom: 12.8rem;}}
+            #         .block15{{ position: relative; left: 11.3rem; bottom: 14.4rem;}}
+            #         .block16{{ position: relative; left: 12.5rem; bottom: 15.98rem;}}
+            #         .block17{{ position: relative; left: 13.65rem; bottom: 17.58rem;}}
+            #         .block18{{ position: relative; left: 14.85rem; bottom: 19.18rem;}}
+            #         .block19{{ position: relative; left: 14.85rem; bottom: 19.2rem;}}
+            #         .block20{{ position: relative; left: 14.85rem; bottom: 19.2rem;}}
+            #         .block21{{ position: relative; left: 14.85rem; bottom: 19.2rem;}}
+            #         .block22{{ position: relative; left: 14.85rem; bottom: 19.2rem;}}
+            #         .block23{{ position: relative; left: 14.85rem; bottom: 19.2rem;}}
+            #         .block24{{ position: relative; left: 13.65rem; bottom: 20.8rem;}}
+            #         .block25{{ position: relative; left: 12.42rem; bottom: 22.4rem;}}
+            #         .block26{{ position: relative; left: 11.25rem; bottom: 24rem;}}
+            #         .block27{{ position: relative; left: 10.02rem; bottom: 25.6rem;}}
+            #         .block28{{ position: relative; left: 8.85rem; bottom: 27.2rem;}}
+            #         .block29{{ position: relative; left: 7.64rem; bottom: 28.8rem;}}
+            #         .block30{{ position: relative; left: 7.6rem; bottom: 32rem;}}
+            #     </style>
+            #     <div class="container">
+            #         <div class="block block1" id="block1">1</div>
+            #         <div class="block block2">2</div>
+            #         <div class="block block3">3</div>
+            #         <div class="block block4">4</div>
+            #         <div class="block block5">5</div>
+            #         <div class="block block6">6</div>
+            #         <div class="block block7">7</div>
+            #         <div class="block block8">8</div>
+            #         <div class="block block9">9</div>
+            #         <div class="block block10">10</div>
+            #         <div class="block block11">11</div>
+            #         <div class="block block12">12</div>
+            #         <div class="block block13">13</div>
+            #         <div class="block block14">14</div>
+            #         <div class="block block15">15</div>
+            #         <div class="block block16">16</div>
+            #         <div class="block block17">17</div>
+            #         <div class="block block18">18</div>
+            #         <div class="block block19">19</div>
+            #         <div class="block block20">20</div>
+            #         <div class="block block21">21</div>
+            #         <div class="block block22">22</div>
+            #         <div class="block block23">23</div>
+            #         <div class="block block24">24</div>
+            #         <div class="block block25">25</div>
+            #         <div class="block block26">26</div>
+            #         <div class="block block27">27</div>
+            #         <div class="block block28">28</div>
+            #         <div class="block block29">29</div>
+            #         <div class="block block30">30</div>
+            #     </div>
+            # """,unsafe_allow_html=True)
 
             st.markdown(
                 """<center style = "height:2rem;">
@@ -45,18 +142,17 @@ def main():
                 """, unsafe_allow_html=True)
             color = "blue"
             st.markdown("""<center><div style='background-color:lightgray; width:95%; font-weight:bold;'>Delivery</div></center>""", unsafe_allow_html=True)
-            D_letter()
-            # st.markdown(f"""
-            #     <center><div>
-            #         <svg class="svg-container" height="150" width="450">
-            #             <text x="20" y="130" font-size="10rem" font-weight="bold" font-family="Arial" fill={color}>D</text>
-            #             <text x="250" y="30" font-size="0.65rem" font-weight="bold" fill="black">LEGEND:</text>
-            #             <text x="250" y="50" font-size="0.65rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
-            #             <text x="250" y="70" font-size="0.65rem" font-weight="bold" fill="red">TARGET MISSED</text>
-            #             <text x="250" y="90" font-size="0.65rem" font-weight="bold" fill="blue">PLANT OFF</text>
-            #         </svg>
-            #     </center></div>
-            #     """, unsafe_allow_html=True)
+            st.markdown(f"""
+                <center><div>
+                    <svg class="svg-container" height="150" width="450">
+                        <text x="20" y="130" font-size="10rem" font-weight="bold" font-family="Arial" fill={color}>D</text>
+                        <text x="250" y="30" font-size="0.65rem" font-weight="bold" fill="black">LEGEND:</text>
+                        <text x="250" y="50" font-size="0.65rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
+                        <text x="250" y="70" font-size="0.65rem" font-weight="bold" fill="red">TARGET MISSED</text>
+                        <text x="250" y="90" font-size="0.65rem" font-weight="bold" fill="blue">PLANT OFF</text>
+                    </svg>
+                </center></div>
+                """, unsafe_allow_html=True)
             st.markdown(
                 """<center style = "height:2rem;">
                 <br>                
@@ -81,18 +177,17 @@ def main():
             with col_img_C:
                 color = "orange"
                 st.markdown("""<center><div style='background-color:lightgray; width:95%; font-weight:bold;'>Quality</div></center>""", unsafe_allow_html=True)
-                Q_letter()
-                # st.markdown(f"""
-                #     <center><div>
-                #         <svg class="svg-container" height="150" width="450">
-                #             <text x="10" y="130" font-size="10rem" font-weight="bold" font-family="Arial" fill={color}>Q</text>
-                #             <text x="250" y="30" font-size="0.65rem" font-weight="bold" fill="black">LEGEND:</text>
-                #             <text x="250" y="50" font-size="0.65rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
-                #             <text x="250" y="70" font-size="0.65rem" font-weight="bold" fill="red">TARGET MISSED</text>
-                #             <text x="250" y="90" font-size="0.65rem" font-weight="bold" fill="blue">PLANT OFF</text>
-                #         </svg>
-                #     </center></div>
-                #     """, unsafe_allow_html=True)
+                st.markdown(f"""
+                    <center><div>
+                        <svg class="svg-container" height="150" width="450">
+                            <text x="10" y="130" font-size="10rem" font-weight="bold" font-family="Arial" fill={color}>Q</text>
+                            <text x="250" y="30" font-size="0.65rem" font-weight="bold" fill="black">LEGEND:</text>
+                            <text x="250" y="50" font-size="0.65rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
+                            <text x="250" y="70" font-size="0.65rem" font-weight="bold" fill="red">TARGET MISSED</text>
+                            <text x="250" y="90" font-size="0.65rem" font-weight="bold" fill="blue">PLANT OFF</text>
+                        </svg>
+                    </center></div>
+                    """, unsafe_allow_html=True)
                 st.markdown("""
                        <center style = "height:2rem;"> <br> <p style = "font-size:13px;">______ days since customer complaint.</p> </center>
                    """, unsafe_allow_html=True)
@@ -110,18 +205,17 @@ def main():
                 """, unsafe_allow_html=True)
                 color = "green"
                 st.markdown("""<center><div style='background-color:lightgray; width:95%; font-weight:bold;'>Cost</div></center>""", unsafe_allow_html=True)
-                C_letter()
-                # st.markdown(f"""
-                #     <center><div>
-                #         <svg class="svg-container" height="150" width="450">
-                #             <text x="20" y="130" font-size="10rem" font-weight="bold" font-family="Arial" fill={color}>C</text>
-                #             <text x="250" y="30" font-size="0.65rem" font-weight="bold" fill="black">LEGEND:</text>
-                #             <text x="250" y="50" font-size="0.65rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
-                #             <text x="250" y="70" font-size="0.65rem" font-weight="bold" fill="red">TARGET MISSED</text>
-                #             <text x="250" y="90" font-size="0.65rem" font-weight="bold" fill="blue">PLANT OFF</text>
-                #         </svg>
-                #     </center></div>
-                #     """, unsafe_allow_html=True)
+                st.markdown(f"""
+                    <center><div>
+                        <svg class="svg-container" height="150" width="450">
+                            <text x="20" y="130" font-size="10rem" font-weight="bold" font-family="Arial" fill={color}>C</text>
+                            <text x="250" y="30" font-size="0.65rem" font-weight="bold" fill="black">LEGEND:</text>
+                            <text x="250" y="50" font-size="0.65rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
+                            <text x="250" y="70" font-size="0.65rem" font-weight="bold" fill="red">TARGET MISSED</text>
+                            <text x="250" y="90" font-size="0.65rem" font-weight="bold" fill="blue">PLANT OFF</text>
+                        </svg>
+                    </center></div>
+                    """, unsafe_allow_html=True)
                 st.markdown("""
                     <center style = "height:2rem;">
                     <br>
