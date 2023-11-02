@@ -113,78 +113,34 @@ def bar_graph(table_name):
 #************ Bar Graph End ************#
 
 #************ Main Data Fetch Start ************#
-def fetch_data(table_name):
+def fetch_month_data(table_name):
     with sqlite3.connect("database/main_database.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        table_names = cursor.fetchall()
-        table_names = [table[0] for table in table_names]
         query = f"SELECT * FROM \"{table_name}\";"
         dataframe = pd.read_sql_query(query, conn)
+        dataframe['DATE'] = pd.to_datetime(dataframe['DATE'])
+        current_month = pd.Timestamp('now').to_period('M')
+        dataframe = dataframe[((dataframe['DATE'].dt.to_period('M')) == current_month)]
     return dataframe
-    
-# class fetch_data():
-#     """Main database fetch.
-        
-#         Parameters:
-#             table_name (str): Table name where from want to get data. 
-#             ex = 'INCIDENCES DETAILS'
-#     """
-#     def __init__(self, table_name): #Class is initialized with the name of a table
-#         self.table_name = table_name
-#         with sqlite3.connect("database/main_database.db") as conn:
-#         # Get a list of all table names in the database
-#             cursor = conn.cursor()
-#             cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-#             table_names = cursor.fetchall()
-#             table_names = [table[0] for table in table_names]
-#             # Create a dictionary to store DataFrames for each table
-#             dataframes = {}
-#             # Fetch data from each table and store it in a DataFrame
-#             # st.write(table_names)
-#             for table_name in table_names:
-#                 query = f"SELECT * FROM \"{table_name}\";"
-#                 dataframes[table_name] = pd.read_sql_query(query, conn)
-#         if self.table_name in dataframes:
-#             self.df = dataframes[self.table_name]
-#             pass
-#         else:
-#             st.write("Table is not available from this name")
-#         pass
-#     def get_specific_data(self, clm_name, spec_data):   #Specific type of data
-#         """Get specific data
-        
-#             Parameters:
-#                 column_name (str): Column name want from which column's data.
-#                 ex = 'DATE'
 
-#                 specific_data (str): Specific data in the column.
-#                 ex = '2023-10-16'
-#         """
-#         self.clm_name = clm_name
-#         self.spec_data = spec_data
-#         try:
-#             self.filter_data = self.df[self.df[self.clm_name] == self.spec_data]
-#             # st.table(filter_data)
-#         except KeyError:
-#             st.write("Column not found in the table.")
-#         if hasattr(self, 'filter_data'):
-#             if self.table_name == "INCIDENCES DETAILS":
-#                 st.table(self.filter_data[["DATE", "TIME", "CATEGORY", "VALUE STREAM", "EVENT", "ACTION", "STATUS"]])
-#             elif self.table_name == "OTIF_CC PDI":
-#                 st.table(self.filter_data[["DATE", "CATEGORY", "TARGET", "ACTUAL"]])
-#             elif self.table_name == "VISITS":
-#                 st.table(self.filter_data[["DATE", "Purpose of Visit", "Visited by Customer or Auditor", "Remarks or Responsibility"]])
-#             else:
-#                 st.table(self.filter_data)
-#         pass
-#     def get_data(self): #Get complete data from table
-#         return self.df
+def fetch_data(table_name):
+    with sqlite3.connect("database/main_database.db") as conn:
+        query = f"SELECT * FROM \"{table_name}\";"
+        dataframe = pd.read_sql_query(query, conn)
+        dataframe['DATE'] = pd.to_datetime(dataframe['DATE'])
+        current_year = pd.Timestamp('now').to_period('Y')
+        # current_month = pd.Timestamp('now').to_period('M')
+        dataframe = dataframe[((dataframe['DATE'].dt.to_period('Y')) == current_year)]
+    return dataframe
 
+def data_filter_between(table_name, start_date, end_date):  #Filter data between dates
+    with sqlite3.connect("database/main_database.db") as conn:
+        query = f"SELECT * FROM \"{table_name}\" WHERE DATE BETWEEN ? AND ? ;"
+        dataframe = pd.read_sql_query(query, conn, params=(start_date, end_date))
+        # dataframe = dataframe.sort_values(by="DATE", ascending=True)
+    return dataframe
 #************ Main Data Fetch End ************#
 
 #************************** Safety_FTD Start **************************#
-
 def safety_ftd():
     class data():
         def __init__(self, incident, time, location, medical, action):
@@ -338,29 +294,6 @@ def safety_ftd():
                         <p class="daily_d" style='left:17rem; top:14rem; color:blue;'>FIRE</p>
                         <p class="daily_d" style='left:17rem; top:16rem; color:green;'>NO INCIDENT</p>
                     </div>""", unsafe_allow_html=True)
-            # st.markdown(f"""
-            #     <style>
-            #         .svg-container {{
-            #             width: 100%;
-            #             max-width: 100%; /* Ensure the container is responsive */
-            #             overflow: hidden; /* Hide the overflowing content */
-            #             height: 60rem;
-            #             text-align: center;
-            #         }}
-            #     </style>
-            #     <div class="svg-container">
-            #         <svg height="100%" width="100%">
-            #             <text x="20%" y="50%" font-size="60vh" font-weight="bold" text-anchor="middle" alignment-baseline="middle" fill={color}>S</text>
-            #             <text x="50%" y="15%" font-size="2vh" font-weight="bold" fill="black">LEGEND:</text>
-            #             <text x="50%" y="25%" font-size="2vh" font-weight="bold" fill="red">RECORDABLE LOST TIME ENJURY</text>
-            #             <text x="50%" y="35%" font-size="2vh" font-weight="bold" fill="darkred">RECORDABLE ACCIDENT</text>
-            #             <text x="50%" y="45%" font-size="2vh" font-weight="bold" fill="orange">FIRST AID</text>
-            #             <text x="50%" y="56%" font-size="2vh" font-weight="bold" fill="yellow">NEAR MISS</text>
-            #             <text x="50%" y="65%" font-size="2vh" font-weight="bold" fill="blue">FIRE</text>
-            #             <text x="50%" y="75%" font-size="2vh" font-weight="bold" fill="green">NO INCIDENT</text>
-            #         </svg>
-            #     </div>
-            #     """, unsafe_allow_html=True)
         with col2:
             st.markdown(f"""
                         <style>
@@ -398,17 +331,17 @@ def safety_ftd():
                     </div>
                     <div class="float-date">
                         <div class="heading5">Time<hr>
-                            <h6 class="heading6">{Record_lost_time.time}</h6>
+                            <h6 class="heading6" style='padding-top:1rem;'>{Record_lost_time.time}</h6>
                         </div>
                     </div>
                     <div class="float-loc">
                         <div class="heading5">Location<hr>
-                            <h6 class="heading6">{Record_lost_time.location}</h6>
+                            <h6 class="heading6" style='padding-top:1rem;'>{Record_lost_time.location}</h6>
                         </div>
                     </div>
                     <div class="float-med">
                         <div class="heading5">Medical<hr>
-                            <h6 class="heading6">{Record_lost_time.medical}</h6>
+                            <h6 class="heading6" style='padding-top:1rem;'>{Record_lost_time.medical}</h6>
                         </div>
                     </div>
                 </div>
@@ -416,7 +349,7 @@ def safety_ftd():
                     <div class="float-pact" >
                         Preventive Measures Implemented and Lesson Learned
                     </div>
-                    <div class="float-act">
+                    <div class="float-act" style='padding-top:2rem;'>
                         {Record_lost_time.action}
                     </div>
                 </div>
@@ -430,17 +363,17 @@ def safety_ftd():
                     </div>
                     <div class="float-date">
                         <div class="heading5">Time<hr>
-                            <h6 class="heading6">{First_aid.time}</h6>
+                            <h6 class="heading6" style='padding-top:1rem;'>{First_aid.time}</h6>
                         </div>
                     </div>
                     <div class="float-loc">
                         <div class="heading5">Location<hr>
-                            <h6 class="heading6">{First_aid.location}</h6>
+                            <h6 class="heading6" style='padding-top:1rem;'>{First_aid.location}</h6>
                         </div>
                     </div>
                     <div class="float-med">
                         <div class="heading5">Medical<hr>
-                            <h6 class="heading6">{First_aid.medical}</h6>
+                            <h6 class="heading6" style='padding-top:1rem;'>{First_aid.medical}</h6>
                         </div>
                     </div>
                 </div>
@@ -448,7 +381,7 @@ def safety_ftd():
                     <div class="float-pact" >
                         Preventive Measures Implemented and Lesson Learned
                     </div>
-                    <div class="float-act">
+                    <div class="float-act" style='padding-top:2rem;'>
                         {First_aid.action}
                     </div>
                 </div>
@@ -647,7 +580,7 @@ def unsafe_incident_tracking():
     #         st.table(df_close[["DATE", "CATEGORY", "EVENT", "ACTION", "LOCATION", "STATUS"]])
 
 def unsafe_practice_tracking():
-    sconn = sqlite3.connect("database/safety.db")
+    sconn = sqlite3.connect("database/main_database.db")
     month = datetime.datetime.now().month
     year = datetime.datetime.now().year
     cur = sconn.cursor()
@@ -658,6 +591,7 @@ def unsafe_practice_tracking():
             f"Select * From 'UNSAFE PRACTICES TRACKING' WHERE strftime('%Y-%m', date) = '{year}-{month}' AND strftime('%Y', date) = '{year}' ",
             sconn)
     # st.write(df)
+    df = fetch_data("UNSAFE PRACTICES TRACKING")
     closed = 0
     for item in df["STATUS"]:
         if item == "Close" or item == "Closed" or item == "close" or item == 'closed':
@@ -674,8 +608,12 @@ def unsafe_practice_tracking():
                         <h3 style='color:white;'>{closed}</h3></div>""",unsafe_allow_html=True)
             # st.metric("Unsafe Practices Closed", closed)
         with col_indices_C:
+            if len(df) == 0:
+                closer_data = 0 
+            else:
+                closer_data = round((closed / len(df))*100)
             st.markdown(f"""<div class="custom" style='background-color:#4be373; text-align:center; font-size:1rem; border:1px solid black; border-radius:25px; font-weight:bold; padding:10px;'>Closure Percentage
-                        <h3 style='color:white;'>{round((closed / len(df))*100)}</h3></div>""",unsafe_allow_html=True)
+                        <h3 style='color:white;'>{closer_data}</h3></div>""",unsafe_allow_html=True)
             # st.metric("Closure Percentage", format((closed / len(df))*100, ".2f"))
     st.markdown("---")
     # st.markdown("## Unsafe Practices Trend :")
@@ -750,28 +688,14 @@ def unsafe_practice_tracking():
     with col1:
         st.write("Please choose option for showing data!")
     with col2:
-        st.table(df_open[["DATE", "EVENT", "LOCATION", "STATUS"]])
+        st.table(df_open[["DATE", "EVENT", "VALUE STREAM", "RESPONSIBILITY", "TARGET DATE", "STATUS"]])
     with col3:
-        st.table(df_close[["DATE", "EVENT", "LOCATION", "STATUS"]])
+        st.table(df_close[["DATE", "EVENT", "VALUE STREAM", "RESPONSIBILITY", "TARGET DATE", "STATUS"]])
 
 #************************** Safety_FTD End **************************#
 
 
 #************************** Cost_FTD Start **************************#
-
-def breakdown_data_fetch():
-    rows = None
-    with sqlite3.connect("database/cost.db") as conn:
-        cur = conn.cursor()
-        specific_date = on_date
-        query = "SELECT * FROM 'MACHINE BREAKDOWN TIME' WHERE Date = ?"
-        cur.execute(query, (specific_date,))
-        rows = cur.fetchall()
-        # print(rows)
-        # print(type(rows[0]))
-        # st.write(rows[0][3])
-    return rows
-
 def cost_ftd():
     #******** Productivity and OEE Section ********#
     rows = fetch_data("PRODUCTIVITY AND OEE")
@@ -899,7 +823,7 @@ def cost_ftd():
     with col2:
         # st.subheader("PRODUCTIVITY AND OEE")
         blk1,blk2=st.columns((1,1))
-        with blk1:
+        with blk1:  #Actual vs Target
             st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:8rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>HUMAN PRODUCTIVITY<hr style='margin:0em;'>
                             <div style='content: "";height:72%; display: table; display:flex;clear: both;'>
                                 <div style='float: left;width: 50%;padding: 1rem 2rem;font-size:1rem;'>Target
@@ -922,7 +846,7 @@ def cost_ftd():
                                 </div>
                             </div>
                             </div>""",unsafe_allow_html=True)
-        with blk2:
+        with blk2:  #Top Issues
             st.markdown(f"""
                 <style>
                         .float-container {{  padding: 5px;   }}
@@ -951,20 +875,48 @@ def cost_ftd():
         
     #******** Machine Breakdown TIme Section ********#
     breakdown = fetch_data("MACHINE BREAKDOWN TIME")
+    breakdown_issue = []
+    breakdown = breakdown[(breakdown["DATE"] == f"{on_date}")]
+    length = len(breakdown)
+    max_bd_issues =  4
+    for index, row in breakdown.iterrows():
+        issue = {
+            "line": row["LINE"],
+            "machine": row["MACHINE"],
+            "bd_time": row["B/D TIME"],
+            "issue": row["ISSUE"],
+            "action": row["ACTION"],
+            "status": row["STATUS"],
+            "del_fail": row["DELIVERY FAILURE"]
+        }
+        breakdown_issue.append(issue)
+        pass
+    while length < max_bd_issues:
+        dummy_issue = {
+            "line": "N/A",
+            "machine": "N/A",
+            "bd_time": "N/A",
+            "issue": "N/A",
+            "action": "N/A",
+            "status": "N/A",
+            "del_fail": "N/A"
+        }
+        breakdown_issue.append(dummy_issue)
+        max_bd_issues = max_bd_issues-1
 
     # st.table(raw1)
     # st.subheader("MACHINE BREAKDOWN TIME")
-    st.markdown("""
+    st.markdown(F"""
         <style>
-                .float-container {  padding: 5px;   }
-                .float-ln {width: 8%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:4rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;}
-                .float-icp {width: 24%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:4rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}
-                .float-msd {width: 12%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:4rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}
-                .float-ln1 {width: 8%; font-size:0.7rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;}
-                .float-icp1 {width: 24%; font-size:0.7rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}
-                .float-msd1 {width: 12%; font-size:0.7rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}
-                .par {padding-top:1rem; font-size:0.7rem; color:black; }
-                hr{ margin:0em; }
+                .float-container {{  padding: 5px;   }}
+                .float-ln {{width: 8%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:4rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;}}
+                .float-icp {{width: 24%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:4rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}}
+                .float-msd {{width: 12%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:4rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}}
+                .float-ln1 {{width: 8%; font-size:0.7rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;}}
+                .float-icp1 {{width: 24%; font-size:0.7rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}}
+                .float-msd1 {{width: 12%; font-size:0.7rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}}
+                .par {{padding-top:1rem; font-size:0.7rem; color:black; }}
+                hr{{ margin:0em; }}
         </style>
         <div class="float-container">
             <div class="float-ln">Line</div><div class="float-msd">Machine</div>
@@ -973,151 +925,250 @@ def cost_ftd():
             <div class="float-msd">Delivery Failure</div>
         </div>
         <div class="float-container">
-            <div class="float-ln1">ln1</div><div class="float-msd1">mch1</div>
-            <div class="float-ln1">bdt1</div><div class="float-icp1">iss1</div>
-            <div class="float-icp1">acp1</div><div class="float-msd1">sts1</div>
-            <div class="float-msd1">df1</div>
+            <div class="float-ln1">{breakdown_issue[0]["line"]}</div><div class="float-msd1">{breakdown_issue[0]["machine"]}</div>
+            <div class="float-ln1">{breakdown_issue[0]["bd_time"]}</div><div class="float-icp1">{breakdown_issue[0]["issue"]}</div>
+            <div class="float-icp1">{breakdown_issue[0]["action"]}</div><div class="float-msd1">{breakdown_issue[0]["status"]}</div>
+            <div class="float-msd1">{breakdown_issue[0]["del_fail"]}</div>
         </div>
         <div class="float-container">
-            <div class="float-ln1">ln2</div><div class="float-msd1">mch2</div>
-            <div class="float-ln1">bdt2</div><div class="float-icp1">iss2</div>
-            <div class="float-icp1">acp2</div><div class="float-msd1">sts2</div>
-            <div class="float-msd1">df2</div>
+            <div class="float-ln1">{breakdown_issue[1]["line"]}</div><div class="float-msd1">{breakdown_issue[1]["machine"]}</div>
+            <div class="float-ln1">{breakdown_issue[1]["bd_time"]}</div><div class="float-icp1">{breakdown_issue[1]["issue"]}</div>
+            <div class="float-icp1">{breakdown_issue[1]["action"]}</div><div class="float-msd1">{breakdown_issue[1]["status"]}</div>
+            <div class="float-msd1">{breakdown_issue[1]["del_fail"]}</div>
         </div>
         <div class="float-container">
-            <div class="float-ln1">ln3</div><div class="float-msd1">mch3</div>
-            <div class="float-ln1">bdt3</div><div class="float-icp1">iss3</div>
-            <div class="float-icp1">acp3</div><div class="float-msd1">sts3</div>
-            <div class="float-msd1">df3</div>
+            <div class="float-ln1">{breakdown_issue[2]["line"]}</div><div class="float-msd1">{breakdown_issue[2]["machine"]}</div>
+            <div class="float-ln1">{breakdown_issue[2]["bd_time"]}</div><div class="float-icp1">{breakdown_issue[2]["issue"]}</div>
+            <div class="float-icp1">{breakdown_issue[2]["action"]}</div><div class="float-msd1">{breakdown_issue[2]["status"]}</div>
+            <div class="float-msd1">{breakdown_issue[2]["del_fail"]}</div>
         </div>
         <div class="float-container">
-            <div class="float-ln1">ln4</div><div class="float-msd1">mch4</div>
-            <div class="float-ln1">bdt4</div><div class="float-icp1">iss4</div>
-            <div class="float-icp1">acp4</div><div class="float-msd1">sts4</div>
-            <div class="float-msd1">df4</div>
+            <div class="float-ln1">{breakdown_issue[3]["line"]}</div><div class="float-msd1">{breakdown_issue[3]["machine"]}</div>
+            <div class="float-ln1">{breakdown_issue[3]["bd_time"]}</div><div class="float-icp1">{breakdown_issue[3]["issue"]}</div>
+            <div class="float-icp1">{breakdown_issue[3]["action"]}</div><div class="float-msd1">{breakdown_issue[3]["status"]}</div>
+            <div class="float-msd1">{breakdown_issue[3]["del_fail"]}</div>
         </div>
-    """.replace("ln1","line_1").replace("mch1","MCH_1").replace("bdt1","BDT_1").replace("iss1","ISS_1").replace("acp1","Acp_1").replace("sts1","STS_1").replace("df1","DF_1")
-    .replace("ln2","line_2").replace("mch2","MCH_2").replace("bdt2","BDT_2").replace("iss2","ISS_2").replace("acp2","Acp_2").replace("sts2","STS_2").replace("df2","DF_2")
-    .replace("ln3","line_3").replace("mch3","MCH_3").replace("bdt3","BDT_3").replace("iss3","ISS_3").replace("acp3","Acp_3").replace("sts3","STS_3").replace("df3","DF_3")
-    .replace("ln4","line_4").replace("mch4","MCH_4").replace("bdt4","BDT_4").replace("iss4","ISS_4").replace("acp4","Acp_4").replace("sts4","STS_4").replace("df4","DF_4")
-    ,unsafe_allow_html=True)
+    """,unsafe_allow_html=True)
 
     #******** RAW Material Section ********#
+    material_data = fetch_month_data("RAW MATERIAL PDI")
+    material_a = material_data[(material_data["DATE"] == f"{on_date}") & (material_data["CATEGORY"] == "A")]
+    material_b = material_data[(material_data["DATE"] == f"{on_date}") & (material_data["CATEGORY"] == "B")]
+    material_c = material_data[(material_data["DATE"] == f"{on_date}") & (material_data["CATEGORY"] == "C")]
+    len_a = len(material_a)
+    len_b = len(material_b)
+    len_c = len(material_c)
+    mat_a = []
+    mat_b = []
+    mat_c = []
+    max_a = 1
+    max_b = 1
+    max_c = 1
+    for index, row in material_a.iterrows():
+        issue = { "PART_NO": row["PART NO"], "VALUE_MINR": row["VALUE_MINR"], "ACTUAL_VALUE": row["ACTUAL VALUE_MINR"], "PDI": row["PDI"] }
+        mat_a.append(issue)
+        pass
+    while len_a < max_a:
+        dummy_issue = { "PART_NO": "N/A", "VALUE_MINR": "N/A", "ACTUAL_VALUE": "N/A", "PDI": "N/A" }
+        mat_a.append(dummy_issue)
+        max_a = max_a-1
+    
+    for index, row in material_b.iterrows():
+        issue = { "PART_NO": row["PART NO"], "VALUE_MINR": row["VALUE_MINR"], "ACTUAL_VALUE": row["ACTUAL VALUE_MINR"], "PDI": row["PDI"] }
+        mat_b.append(issue)
+        pass
+    while len_b < max_b:
+        dummy_issue = { "PART_NO": "N/A", "VALUE_MINR": "N/A", "ACTUAL_VALUE": "N/A", "PDI": "N/A" }
+        mat_b.append(dummy_issue)
+        max_b = max_b-1
+
+    for index, row in material_c.iterrows():
+        issue = { "PART_NO": row["PART NO"], "VALUE_MINR": row["VALUE_MINR"], "ACTUAL_VALUE": row["ACTUAL VALUE_MINR"], "PDI": row["PDI"] }
+        mat_c.append(issue)
+        pass
+    while len_c < max_c:
+        dummy_issue = { "PART_NO": "N/A", "VALUE_MINR": "N/A", "ACTUAL_VALUE": "N/A", "PDI": "N/A" }
+        mat_a.append(dummy_issue)
+        max_c = max_c-1
+
     # st.subheader("RAW MATERIAL P.D.I.")
-    st.markdown("""
+    col1,col2=st.columns((3,1))
+    with col1:
+        st.markdown(f"""
+                <style>
+                    .float-container {{  padding: 5px;   }}
+                    .float-nop {{width: 20%; font-weight:bold; font-size:1rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.7rem; line-height:1rem; border: 1px solid black;}}
+                    .float-ct1 {{width: 20%; font-weight:bold; font-size:3rem; float: left; height:4.5rem; text-align:center; padding-top: 0rem; border: 1px solid black;}}
+                    .float-nop1 {{width: 20%; font-size:0.7rem; float: left; word-wrap:break-word; height:4.5rem; text-align:center; padding: 2rem; line-height:1rem; border: 1px solid black;}}
+                    .float-prb1 {{width: 30%; font-size:0.7rem; float: left; word-wrap:break-word; height:4.5rem; text-align:center; padding: 2rem; line-height:1rem; border: 1px solid black;}}
+                    hr{{ margin:0em; }}
+                </style>
+                <div class="float-container">
+                    <div class="float-nop">Category</div><div class="float-nop">No of Parts</div>
+                    <div class="float-nop">Value (MINR)</div><div class="float-nop">Actual Value (MINR)</div>
+                    <div class="float-nop">P.D.I.</div>
+                </div>
+                <div class="float-container">
+                    <div class="float-ct1">A</div><div class="float-nop1">{mat_a[0]["PART_NO"]}</div>
+                    <div class="float-nop1">{mat_a[0]["VALUE_MINR"]}</div><div class="float-nop1">{mat_a[0]["ACTUAL_VALUE"]}</div>
+                    <div class="float-nop1">{mat_a[0]["PDI"]}</div>
+                </div>
+                <div class="float-container">
+                    <div class="float-ct1">B</div><div class="float-nop1">{mat_b[0]["PART_NO"]}</div>
+                    <div class="float-nop1">{mat_b[0]["VALUE_MINR"]}</div><div class="float-nop1">{mat_b[0]["ACTUAL_VALUE"]}</div>
+                    <div class="float-nop1">{mat_b[0]["PDI"]}</div>
+                </div>
+                <div class="float-container">
+                    <div class="float-ct1">C</div><div class="float-nop1">{mat_c[0]["PART_NO"]}</div>
+                    <div class="float-nop1">{mat_c[0]["VALUE_MINR"]}</div><div class="float-nop1">{mat_c[0]["ACTUAL_VALUE"]}</div>
+                    <div class="float-nop1">{mat_c[0]["PDI"]}</div>
+                </div>
+            """,unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""
             <style>
-                    .float-container {  padding: 5px;   }
-                    .float-ct {width: 10%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding-top: 0.7rem; border: 1px solid black;}
-                    .float-nop {width: 15%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.7rem; line-height:1rem; border: 1px solid black;}
-                    .float-prb {width: 30%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.7rem; line-height:1rem; border: 1px solid black;}
-                    .float-ct1 {width: 10%; font-weight:bold; font-size:3rem; float: left; word-wrap:break-word; height:6rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;}
-                    .float-nop1 {width: 15%; font-size:0.7rem; float: left; word-wrap:break-word; height:6rem; text-align:center; padding: 2rem; line-height:1rem; border: 1px solid black;}
-                    .float-prb1 {width: 30%; font-size:0.7rem; float: left; word-wrap:break-word; height:6rem; text-align:center; padding: 2rem; line-height:1rem; border: 1px solid black;}
-                    .par {padding-top:1rem; font-size:0.7rem; color:black; }
-                    hr{ margin:0em; }
+                .float-container {{  padding: 5px;   }}
+                .float-prb {{width: 100%; font-weight:bold; font-size:1rem; float: left; height:16.5rem; text-align:center; padding: 0.7rem; line-height:1rem; border: 1px solid black;}}    
+                .float-prb p{{padding-top:1rem; color:black; }}
             </style>
             <div class="float-container">
-                <div class="float-ct">Category</div><div class="float-nop">No of Parts</div>
-                <div class="float-nop">Value (MINR)</div><div class="float-nop">Actual Value (MINR)</div>
-                <div class="float-nop">P.D.I.</div><div class="float-prb">Top 3 Problems</div>
+                <div class="float-prb">Top 3 Problems <hr style='padding:0.5rem 0rem;'>
+                    <p>prblm</p>
+                    <p>prblm</p>
+                    <p>prblm</p>
+                </div>
             </div>
-            <div class="float-container">
-                <div class="float-ct1">A</div><div class="float-nop1">npr1</div>
-                <div class="float-nop1">vnr1</div><div class="float-nop1">avr1</div>
-                <div class="float-nop1">pdi1</div><div class="float-prb1">tpr1</div>
-            </div>
-            <div class="float-container">
-                <div class="float-ct1">B</div><div class="float-nop1">npr2</div>
-                <div class="float-nop1">vnr2</div><div class="float-nop1">avr2</div>
-                <div class="float-nop1">pdi2</div><div class="float-prb1">tpr2</div>
-            </div>
-            <div class="float-container">
-                <div class="float-ct1">C</div><div class="float-nop1">npr3</div>
-                <div class="float-nop1">vnr3</div><div class="float-nop1">avr3</div>
-                <div class="float-nop1">pdi3</div><div class="float-prb1">tpr3</div>
-            </div>
-        """.replace("npr1","NOP_1").replace("vnr1","VNR_1").replace("avr1","AVR_1").replace("pdi1","PDI_1").replace("tpr1","TPR_1")
-        .replace("npr2","NOP_2").replace("vnr2","VNR_2").replace("avr2","AVR_2").replace("pdi2","PDI_2").replace("tpr2","TPR_2")
-        .replace("npr3","NOP_3").replace("vnr3","VNR_3").replace("avr3","AVR_3").replace("pdi3","PDI_3").replace("tpr3","TPR_3"),unsafe_allow_html=True)
+        """,unsafe_allow_html=True)
 
 def productivity_oee():
     current_date()
+    oee_data = fetch_month_data("PRODUCTIVITY AND OEE")
+    hp_month_actual = oee_data[(oee_data["CATEGORY"] == "HUMAN PRODUCTIVITY")]["ACTUAL"].sum()
+    hp_month_target = oee_data[(oee_data["CATEGORY"] == "HUMAN PRODUCTIVITY")]["TARGET"].sum()
+    plant_month_actual = oee_data[(oee_data["CATEGORY"] == "PLANT AGGREGATE OEE")]["ACTUAL"].sum()
+    plant_month_target = oee_data[(oee_data["CATEGORY"] == "PLANT AGGREGATE OEE")]["TARGET"].sum()
     blk1,blk2=st.columns((1,1))
     with blk1:
         st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:8rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>HUMAN PRODUCTIVITY<hr>
                             <div style='content: ""; height:72%; display: table; display:flex;clear: both;'>
                                 <div style='float: left;width: 50%;padding: 1rem 2rem;font-size:1rem;'>Target
-                                    <h6>$1</h6>
+                                    <h6>{hp_month_target}</h6>
                                 </div>
                                     <div style='border-left: 1px solid lightgray; height: 100%;'></div>
                                 <div style='float: left; width: 50%;padding: 1rem 1.5rem;font-size:1rem;'>Actual
-                                    <h6>$2</h6>
+                                    <h6>{hp_month_actual}</h6>
                                 </div>
                             </div>
-                        </div>""".replace("$1",str("0")).replace("$2",str("0")),unsafe_allow_html=True)
+                        </div>""",unsafe_allow_html=True)
         st.markdown(f"""<div style='margin:1rem;padding-top:0.5rem;border:1px solid black;height:8rem;border-radius:0.8rem;font-size:1.2rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>PLANT AGGREGATE OEE<hr>
                             <div style='content: center; height:72%; display: table;display:flex;clear: both;'>
                                 <div style='float: left;test-align:center;width: 50%;padding:1rem 2rem;font-size:1rem;'>Target
-                                    <h6>$1</h6>
+                                    <h6>{plant_month_target}</h6>
                                 </div>
                                     <div style='border-left: 1px solid lightgray; height: 100%;'></div>
                                 <div style='float: right;test-align:center;width: 50%;padding:1rem 1.5rem;font-size:1rem;'>Actual
-                                    <h6>$2</h6>
+                                    <h6>{plant_month_actual}</h6>
                                 </div>
                             </div>
-                        </div>""".replace("$1",str("0")).replace("$2",str("0")),unsafe_allow_html=True)
+                        </div>""",unsafe_allow_html=True)
+    
+    issues = fetch_month_data("COST ISSUE")
+    hp_issue = issues[issues["CATEGORY"] == "HUMAN PRODUCTIVITY"]
+    plant_issue = issues[issues["CATEGORY"] == "PLANT AGGREGATE OEE"]
+    hp_len = len(hp_issue)
+    plant_len = len(plant_issue)
+    hp_event = []
+    plant_event = []
+    max_hp = 3
+    max_plant = 3
+    for index, row in hp_issue.iterrows():
+        issue = row["ISSUE"]
+        hp_event.append(issue)
+    while hp_len < max_hp:
+        dummy_issue = "N/A"
+        hp_event.append(dummy_issue)
+        max_hp = max_hp-1
+        print(max_hp)
+    for index, row in plant_issue.iterrows():
+        issue = row["ISSUE"]
+        plant_event.append(issue)
+    while plant_len < max_plant:
+        dummy_issue = "N/A"
+        plant_event.append(dummy_issue)
+        max_plant = max_plant-1
     with blk2:
-        st.markdown("""
-        <style>
-                .float-container {  padding: 5px;   }
-                .float-bd1 {width: 100%; font-weight:bold; font-size:1rem; float: left; word-wrap:break-word; height:10rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;
-                }
-                .float-hd1 {width: 100%; font-size:1rem; color:black; float: left; word-wrap:break-word; height:10rem; text-align:center; padding: 10px; border: 1px solid black;
-                }
-                .par {padding-top:0.5rem; line-height:0.1rem; font-size:0.7rem; color:black; }
-                hr{ margin:0em; }
-        </style>
-        <div class="float-container">
-            <div class="float-bd1">Top 3 Productivity Problems<hr style='margin:0.6rem 0rem;'>
-                    <p class="par">Prod_prblm_1 here</p>
-                    <p class="par">Prod_prblm_2 here</p>
-                    <p class="par">Prod_prblm_3 here</p>
+        st.markdown(f"""
+            <style>
+                .float-container {{  padding: 5px;   }}
+                .float-bd1 {{width: 100%; font-weight:bold; font-size:1rem; float: left; word-wrap:break-word; height:9rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;
+                }}
+                .float-hd1 {{width: 100%; font-size:1rem; color:black; float: left; word-wrap:break-word; height:10rem; text-align:center; padding: 10px; border: 1px solid black;
+                }}
+                .par {{padding-top:0.5rem; line-height:0.1rem; font-size:0.7rem; color:black; }}
+                hr{{ margin:0em; }}
+            </style>
+            <div class="float-container">
+                <div class="float-bd1">Top 3 Productivity Problems<hr style='margin:0.6rem 0rem;'>
+                    <p class="par">{hp_event[0]}</p>
+                    <p class="par">{hp_event[0]}</p>
+                    <p class="par">{hp_event[0]}</p>
+                </div>
             </div>
-        </div>
-        <div class="float-container">
-            <div class="float-bd1">Top 3 OEE Related Problems<hr style='margin:0.6rem 0rem;'>
-                <p class="par">OEE_prblm_1 here</p>
-                <p class="par">OEE_prblm_2 here</p>
-                <p class="par">OEE_prblm_3 here</p>
+        """,unsafe_allow_html=True)
+        
+        st.markdown(f"""
+            <div class="float-container">
+                <div class="float-bd1">Top 3 OEE Related Problems<hr style='margin:0.6rem 0rem;'>
+                    <p class="par">{plant_event[0]}</p>
+                    <p class="par">{plant_event[0]}</p>
+                    <p class="par">{plant_event[0]}</p>
+                </div>
             </div>
-        </div>
-    """.replace("Prod_prblm_1",(str("Productivity_Problem_1")))
-    .replace("Prod_prblm_2",(str("Productivity_Problem_2")))
-    .replace("Prod_prblm_3",(str("Productivity_Problem_3")))
-    .replace("OEE_prblm_1",(str("OEE_Problem_1")))
-    .replace("OEE_prblm_2",(str("OEE_Problem_2")))
-    .replace("OEE_prblm_3",(str("OEE_Problem_3"))),unsafe_allow_html=True)
+        """,unsafe_allow_html=True)
     
     # st.subheader("Productivity and OEE Trend")
     bar_graph("PRODUCTIVITY AND OEE")
     
 def mach_break_time():
-    h1_col1, h1_col2 = st.columns((1,1.5))
-    with h1_col1:
-        st.subheader(":blue[MACHINE BREAKDOWN TIME]",divider="rainbow")
-    with h1_col2:
+    breakdown = fetch_month_data("MACHINE BREAKDOWN TIME")
+    breakdown_issue = []
+    length = len(breakdown)
+    max_bd_issues =  4
+    for index, row in breakdown.iterrows():
+        issue = {
+            "line": row["LINE"],
+            "machine": row["MACHINE"],
+            "bd_time": row["B/D TIME"],
+            "issue": row["ISSUE"],
+            "action": row["ACTION"],
+            "status": row["STATUS"],
+            "del_fail": row["DELIVERY FAILURE"]
+        }
+        breakdown_issue.append(issue)
         pass
-    st.markdown("""
+    while length < max_bd_issues:
+        dummy_issue = {
+            "line": "N/A",
+            "machine": "N/A",
+            "bd_time": "N/A",
+            "issue": "N/A",
+            "action": "N/A",
+            "status": "N/A",
+            "del_fail": "N/A"
+        }
+        breakdown_issue.append(dummy_issue)
+        max_bd_issues = max_bd_issues-1
+    st.markdown(F"""
         <style>
-                .float-container {  padding: 5px;   }
-                .float-ln {width: 8%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:4rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;}
-                .float-icp {width: 24%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:4rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}
-                .float-msd {width: 12%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:4rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}
-                .float-ln1 {width: 8%; font-size:0.7rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;}
-                .float-icp1 {width: 24%; font-size:0.7rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}
-                .float-msd1 {width: 12%; font-size:0.7rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}
-                .par {padding-top:1rem; font-size:0.7rem; color:black; }
-                hr{ margin:0em; }
+                .float-container {{  padding: 5px;   }}
+                .float-ln {{width: 8%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:4rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;}}
+                .float-icp {{width: 24%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:4rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}}
+                .float-msd {{width: 12%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:4rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}}
+                .float-ln1 {{width: 8%; font-size:0.7rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;}}
+                .float-icp1 {{width: 24%; font-size:0.7rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}}
+                .float-msd1 {{width: 12%; font-size:0.7rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.4rem; line-height:1rem; border: 1px solid black;}}
+                .par {{padding-top:1rem; font-size:0.7rem; color:black; }}
+                hr{{ margin:0em; }}
         </style>
         <div class="float-container">
             <div class="float-ln">Line</div><div class="float-msd">Machine</div>
@@ -1126,98 +1177,122 @@ def mach_break_time():
             <div class="float-msd">Delivery Failure</div>
         </div>
         <div class="float-container">
-            <div class="float-ln1">ln1</div><div class="float-msd1">mch1</div>
-            <div class="float-ln1">bdt1</div><div class="float-icp1">iss1</div>
-            <div class="float-icp1">acp1</div><div class="float-msd1">sts1</div>
-            <div class="float-msd1">df1</div>
+            <div class="float-ln1">{breakdown_issue[0]["line"]}</div><div class="float-msd1">{breakdown_issue[0]["machine"]}</div>
+            <div class="float-ln1">{breakdown_issue[0]["bd_time"]}</div><div class="float-icp1">{breakdown_issue[0]["issue"]}</div>
+            <div class="float-icp1">{breakdown_issue[0]["action"]}</div><div class="float-msd1">{breakdown_issue[0]["status"]}</div>
+            <div class="float-msd1">{breakdown_issue[0]["del_fail"]}</div>
         </div>
         <div class="float-container">
-            <div class="float-ln1">ln2</div><div class="float-msd1">mch2</div>
-            <div class="float-ln1">bdt2</div><div class="float-icp1">iss2</div>
-            <div class="float-icp1">acp2</div><div class="float-msd1">sts2</div>
-            <div class="float-msd1">df2</div>
+            <div class="float-ln1">{breakdown_issue[1]["line"]}</div><div class="float-msd1">{breakdown_issue[1]["machine"]}</div>
+            <div class="float-ln1">{breakdown_issue[1]["bd_time"]}</div><div class="float-icp1">{breakdown_issue[1]["issue"]}</div>
+            <div class="float-icp1">{breakdown_issue[1]["action"]}</div><div class="float-msd1">{breakdown_issue[1]["status"]}</div>
+            <div class="float-msd1">{breakdown_issue[1]["del_fail"]}</div>
         </div>
         <div class="float-container">
-            <div class="float-ln1">ln3</div><div class="float-msd1">mch3</div>
-            <div class="float-ln1">bdt3</div><div class="float-icp1">iss3</div>
-            <div class="float-icp1">acp3</div><div class="float-msd1">sts3</div>
-            <div class="float-msd1">df3</div>
+            <div class="float-ln1">{breakdown_issue[2]["line"]}</div><div class="float-msd1">{breakdown_issue[2]["machine"]}</div>
+            <div class="float-ln1">{breakdown_issue[2]["bd_time"]}</div><div class="float-icp1">{breakdown_issue[2]["issue"]}</div>
+            <div class="float-icp1">{breakdown_issue[2]["action"]}</div><div class="float-msd1">{breakdown_issue[2]["status"]}</div>
+            <div class="float-msd1">{breakdown_issue[2]["del_fail"]}</div>
         </div>
         <div class="float-container">
-            <div class="float-ln1">ln4</div><div class="float-msd1">mch4</div>
-            <div class="float-ln1">bdt4</div><div class="float-icp1">iss4</div>
-            <div class="float-icp1">acp4</div><div class="float-msd1">sts4</div>
-            <div class="float-msd1">df4</div>
+            <div class="float-ln1">{breakdown_issue[3]["line"]}</div><div class="float-msd1">{breakdown_issue[3]["machine"]}</div>
+            <div class="float-ln1">{breakdown_issue[3]["bd_time"]}</div><div class="float-icp1">{breakdown_issue[3]["issue"]}</div>
+            <div class="float-icp1">{breakdown_issue[3]["action"]}</div><div class="float-msd1">{breakdown_issue[3]["status"]}</div>
+            <div class="float-msd1">{breakdown_issue[3]["del_fail"]}</div>
         </div>
-    """.replace("ln1","line_1").replace("mch1","MCH_1").replace("bdt1","BDT_1").replace("iss1","ISS_1").replace("acp1","Acp_1").replace("sts1","STS_1").replace("df1","DF_1")
-    .replace("ln2","line_2").replace("mch2","MCH_2").replace("bdt2","BDT_2").replace("iss2","ISS_2").replace("acp2","Acp_2").replace("sts2","STS_2").replace("df2","DF_2")
-    .replace("ln3","line_3").replace("mch3","MCH_3").replace("bdt3","BDT_3").replace("iss3","ISS_3").replace("acp3","Acp_3").replace("sts3","STS_3").replace("df3","DF_3")
-    .replace("ln4","line_4").replace("mch4","MCH_4").replace("bdt4","BDT_4").replace("iss4","ISS_4").replace("acp4","Acp_4").replace("sts4","STS_4").replace("df4","DF_4")
-    ,unsafe_allow_html=True)
+    """,unsafe_allow_html=True)
+    bar_graph("MACHINE BREAKDOWN TIME")
 
 def raw_metarial():
     current_date()
-    # bar_graph("RAW MATERIAL PDI")
-    raw_data = fetch_data("PPM PROBLEMS")
-    st.write(raw_data)
-    date = st.date_input("select date")
-    raw_data = raw_data[(raw_data["DATE"] == f"{date}") & (raw_data["CATEGORY"] == "PLANT PPM")]
-    length = len(raw_data)
-    st.write(length)
-    my_event = []
-    max_issues = 3
-    for index, row in raw_data.iterrows():
-        issue = {
-            "PROBLEM": row["PROBLEM"],
-            "PART_LINE": row["PART_LINE"],
-            "REJ_QTY": row["REJ_QTY"]
-        }
-        my_event.append(issue)
+    bar_graph("RAW MATERIAL PDI")
+    material_data = fetch_month_data("RAW MATERIAL PDI")
+    material_a = material_data[material_data["CATEGORY"] == "A"]
+    material_b = material_data[material_data["CATEGORY"] == "B"]
+    material_c = material_data[material_data["CATEGORY"] == "C"]
+    len_a = len(material_a)
+    len_b = len(material_b)
+    len_c = len(material_c)
+    mat_a = []
+    mat_b = []
+    mat_c = []
+    max_a = 1
+    max_b = 1
+    max_c = 1
+    for index, row in material_a.iterrows():
+        issue = { "PART_NO": row["PART NO"], "VALUE_MINR": row["VALUE_MINR"], "ACTUAL_VALUE": row["ACTUAL VALUE_MINR"], "PDI": row["PDI"] }
+        mat_a.append(issue)
         pass
-    while length < max_issues:
-        dummy_issue = {
-            "PROBLEM": "N/A",
-            "PART_LINE": "N/A",
-            "REJ_QTY": "N/A"
-        }
-        my_event.append(dummy_issue)
-        max_issues = max_issues-1
-    st.write(my_event)
-    st.markdown("""
+    while len_a < max_a:
+        dummy_issue = { "PART_NO": "N/A", "VALUE_MINR": "N/A", "ACTUAL_VALUE": "N/A", "PDI": "N/A" }
+        mat_a.append(dummy_issue)
+        max_a = max_a-1
+    
+    for index, row in material_b.iterrows():
+        issue = { "PART_NO": row["PART NO"], "VALUE_MINR": row["VALUE_MINR"], "ACTUAL_VALUE": row["ACTUAL VALUE_MINR"], "PDI": row["PDI"] }
+        mat_b.append(issue)
+        pass
+    while len_b < max_b:
+        dummy_issue = { "PART_NO": "N/A", "VALUE_MINR": "N/A", "ACTUAL_VALUE": "N/A", "PDI": "N/A" }
+        mat_b.append(dummy_issue)
+        max_b = max_b-1
+
+    for index, row in material_c.iterrows():
+        issue = { "PART_NO": row["PART NO"], "VALUE_MINR": row["VALUE_MINR"], "ACTUAL_VALUE": row["ACTUAL VALUE_MINR"], "PDI": row["PDI"] }
+        mat_c.append(issue)
+        pass
+    while len_c < max_c:
+        dummy_issue = { "PART_NO": "N/A", "VALUE_MINR": "N/A", "ACTUAL_VALUE": "N/A", "PDI": "N/A" }
+        mat_a.append(dummy_issue)
+        max_c = max_c-1
+
+    col1,col2=st.columns((3,1))
+    with col1:
+        st.markdown(f"""
+                <style>
+                    .float-container {{  padding: 5px;   }}
+                    .float-nop {{width: 20%; font-weight:bold; font-size:1rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.7rem; line-height:1rem; border: 1px solid black;}}
+                    .float-ct1 {{width: 20%; font-weight:bold; font-size:3rem; float: left; height:4.5rem; text-align:center; padding-top: 0rem; border: 1px solid black;}}
+                    .float-nop1 {{width: 20%; font-size:0.7rem; float: left; word-wrap:break-word; height:4.5rem; text-align:center; padding: 2rem; line-height:1rem; border: 1px solid black;}}
+                    .float-prb1 {{width: 30%; font-size:0.7rem; float: left; word-wrap:break-word; height:4.5rem; text-align:center; padding: 2rem; line-height:1rem; border: 1px solid black;}}
+                    hr{{ margin:0em; }}
+                </style>
+                <div class="float-container">
+                    <div class="float-nop">Category</div><div class="float-nop">No of Parts</div>
+                    <div class="float-nop">Value (MINR)</div><div class="float-nop">Actual Value (MINR)</div>
+                    <div class="float-nop">P.D.I.</div>
+                </div>
+                <div class="float-container">
+                    <div class="float-ct1">A</div><div class="float-nop1">{mat_a[0]["PART_NO"]}</div>
+                    <div class="float-nop1">{mat_a[0]["VALUE_MINR"]}</div><div class="float-nop1">{mat_a[0]["ACTUAL_VALUE"]}</div>
+                    <div class="float-nop1">{mat_a[0]["PDI"]}</div>
+                </div>
+                <div class="float-container">
+                    <div class="float-ct1">B</div><div class="float-nop1">{mat_b[0]["PART_NO"]}</div>
+                    <div class="float-nop1">{mat_b[0]["VALUE_MINR"]}</div><div class="float-nop1">{mat_b[0]["ACTUAL_VALUE"]}</div>
+                    <div class="float-nop1">{mat_b[0]["PDI"]}</div>
+                </div>
+                <div class="float-container">
+                    <div class="float-ct1">C</div><div class="float-nop1">{mat_c[0]["PART_NO"]}</div>
+                    <div class="float-nop1">{mat_c[0]["VALUE_MINR"]}</div><div class="float-nop1">{mat_c[0]["ACTUAL_VALUE"]}</div>
+                    <div class="float-nop1">{mat_c[0]["PDI"]}</div>
+                </div>
+            """,unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""
             <style>
-                    .float-container {  padding: 5px;   }
-                    .float-ct {width: 10%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding-top: 0.7rem; border: 1px solid black;}
-                    .float-nop {width: 15%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.7rem; line-height:1rem; border: 1px solid black;}
-                    .float-prb {width: 30%; font-weight:bold; font-size:0.8rem; float: left; word-wrap:break-word; height:3rem; text-align:center; padding: 0.7rem; line-height:1rem; border: 1px solid black;}
-                    .float-ct1 {width: 10%; font-weight:bold; font-size:3rem; float: left; word-wrap:break-word; height:6rem; text-align:center; padding-top: 0.4rem; border: 1px solid black;}
-                    .float-nop1 {width: 15%; font-size:0.7rem; float: left; word-wrap:break-word; height:6rem; text-align:center; padding: 2rem; line-height:1rem; border: 1px solid black;}
-                    .float-prb1 {width: 30%; font-size:0.7rem; float: left; word-wrap:break-word; height:6rem; text-align:center; padding: 2rem; line-height:1rem; border: 1px solid black;}
-                    .par {padding-top:1rem; font-size:0.7rem; color:black; }
-                    hr{ margin:0em; }
+                .float-container {{  padding: 5px;   }}
+                .float-prb {{width: 100%; font-weight:bold; font-size:1rem; float: left; height:16.5rem; text-align:center; padding: 0.7rem; line-height:1rem; border: 1px solid black;}}    
+                .float-prb p{{padding-top:1rem; color:black; }}
             </style>
             <div class="float-container">
-                <div class="float-ct">Category</div><div class="float-nop">No of Parts</div>
-                <div class="float-nop">Value (MINR)</div><div class="float-nop">Actual Value (MINR)</div>
-                <div class="float-nop">P.D.I.</div><div class="float-prb">Top 3 Problems</div>
+                <div class="float-prb">Top 3 Problems <hr style='padding:0.5rem 0rem;'>
+                    <p>prblm</p>
+                    <p>prblm</p>
+                    <p>prblm</p>
+                </div>
             </div>
-            <div class="float-container">
-                <div class="float-ct1">A</div><div class="float-nop1">npr1</div>
-                <div class="float-nop1">vnr1</div><div class="float-nop1">avr1</div>
-                <div class="float-nop1">pdi1</div><div class="float-prb1">tpr1</div>
-            </div>
-            <div class="float-container">
-                <div class="float-ct1">B</div><div class="float-nop1">npr2</div>
-                <div class="float-nop1">vnr2</div><div class="float-nop1">avr2</div>
-                <div class="float-nop1">pdi2</div><div class="float-prb1">tpr2</div>
-            </div>
-            <div class="float-container">
-                <div class="float-ct1">C</div><div class="float-nop1">npr3</div>
-                <div class="float-nop1">vnr3</div><div class="float-nop1">avr3</div>
-                <div class="float-nop1">pdi3</div><div class="float-prb1">tpr3</div>
-            </div>
-        """.replace("npr1","NOP_1").replace("vnr1","VNR_1").replace("avr1","AVR_1").replace("pdi1","PDI_1").replace("tpr1","TPR_1")
-        .replace("npr2","NOP_2").replace("vnr2","VNR_2").replace("avr2","AVR_2").replace("pdi2","PDI_2").replace("tpr2","TPR_2")
-        .replace("npr3","NOP_3").replace("vnr3","VNR_3").replace("avr3","AVR_3").replace("pdi3","PDI_3").replace("tpr3","TPR_3"),unsafe_allow_html=True)
+        """,unsafe_allow_html=True)
 
 #************************** Cost_FTD End **************************#
 
@@ -1720,7 +1795,7 @@ def otif():
 def sale_actual():
     # Sale Plan vs Actual Plan
     current_date()
-    st.subheader("Sale Plan vs Actual Trend")
+    # st.subheader("Sale Plan vs Actual Trend")
     bar_graph("SALE PLAN VS ACTUAL")
     sale_plan = fetch_data("SALE PLAN VS ACTUAL")
     sale_plan["DATE"] = pd.to_datetime(sale_plan["DATE"])
@@ -2364,31 +2439,35 @@ def quality_ftd():
 
 def customer_complaint():
     current_date()
-    class complaint():
-        def __init__(self, comp, rais, resp, close, stat) -> None: 
-            self.comp = comp
-            self.rais = rais
-            self.resp = resp
-            self.close = close
-            self.stat = stat
-            pass
-        def show(self):
-            return st.write(f"Complaint is {self.comp} raise on date {self.rais} and will close on {self.close} and now status is {self.stat}")
     datas = []
     df = fetch_data("CUSTOMER COMPLAINTS")
     df['DATE'] = pd.to_datetime(df['DATE'])
     current_month = pd.Timestamp('now').to_period('M')
     cmplnt_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
     total_complaints = len(cmplnt_data)
-    # current_day = pd.Timestamp('now').day
-    # monthly_data = df[df['RAISE DATE'].dt.month == current_month]
-    # daily_data = df[df['RAISE DATE'].dt.day == 18]
-    # complaints_per_day = df['RAISE DATE'].dt.day.value_counts().sort_index()
-    
-    for index, complaints in cmplnt_data.iterrows():
-        datas.append(complaint(complaints["COMPLAINT"], complaints["RAISE DATE"], complaints["RESPONSIBILITY"], complaints["TARGET DATE"], complaints["STATUS"]))
-        # st.write(complaints["COMPLAINT"])
-    # st.write(datas[3].comp)
+
+    length = len(cmplnt_data)
+    max_complaint = 6
+    for index, row in cmplnt_data.iterrows():
+        issue = {
+            "COMPLAINT": row["COMPLAINT"],
+            "RAISE_DATE": row["RAISE DATE"],
+            "TARGET_DATE": row["TARGET DATE"],
+            "STATUS": row["STATUS"],
+            "RESPONSIBILITY": row["RESPONSIBILITY"]
+        }
+        datas.append(issue)
+        pass
+    while length < max_complaint:
+        dummy_issue = {
+            "COMPLAINT": "N/A",
+            "RAISE_DATE": "N/A",
+            "TARGET_DATE": "N/A",
+            "STATUS": "N/A",
+            "RESPONSIBILITY": "N/A"
+        }
+        datas.append(dummy_issue)
+        max_complaint = max_complaint-1
     
     # st.subheader("Customer Complaints Trend:")
     cl1,cl2,cl3 = st.columns((1,1,1))
@@ -2439,19 +2518,6 @@ def customer_complaint():
     with col3:
         pass
     
-    # df = df[["COMPLAINT", "RAISE DATE", "RESPONSIBILITY", "TARGET DATE", "STATUS"]]
-    # def my_color(status):
-    #     if status == 'Open':
-    #         color = 'background-color: #FB2D30; color: white;'
-    #     elif status == 'Inprocess':
-    #         color = 'background-color: #F3ED21; color: white;'
-    #     elif status == 'Closed':
-    #         color = 'background-color: #78E866; color: white;'
-    #     # color = 'green' if target > actual else 'red'
-    #     return f'{color}'
-    # styled_df = df.style.applymap(my_color, subset=['STATUS'])
-    # st.dataframe(styled_df, hide_index=True, width=2000)
-    
     status_clr = []
     def stat_clr( clr_name):
         if clr_name == 'Open':
@@ -2460,11 +2526,14 @@ def customer_complaint():
         elif clr_name == 'Inprocess':
             clr = '#e9f76a'
             return clr
-        else:
+        elif clr_name == 'Closed':
             clr = '#5fe650'
             return clr
+        else:
+            clr = '#dff2dc'
+            return clr
     
-    statuses = [datas[0].stat, datas[1].stat, datas[2].stat, datas[3].stat, datas[4].stat, datas[5].stat]
+    statuses = [datas[0]["STATUS"], datas[1]["STATUS"], datas[2]["STATUS"], datas[3]["STATUS"], datas[4]["STATUS"], datas[5]["STATUS"]]
     for status in statuses:
         status_clr_value = stat_clr(status)
         status_clr.append(status_clr_value)
@@ -2489,44 +2558,44 @@ def customer_complaint():
         </style>
         <div class="float-container">
             <div class="float-cd">Complaint details<hr>
-                <p class="par">{datas[0].comp}</p>
-                <p class="par">{datas[1].comp}</p>
-                <p class="par">{datas[2].comp}</p>
-                <p class="par">{datas[3].comp}</p>
-                <p class="par">{datas[4].comp}</p>
-                <p class="par">{datas[5].comp}</p>
+                <p class="par">{datas[0]["COMPLAINT"]}</p>
+                <p class="par">{datas[1]["COMPLAINT"]}</p>
+                <p class="par">{datas[2]["COMPLAINT"]}</p>
+                <p class="par">{datas[3]["COMPLAINT"]}</p>
+                <p class="par">{datas[4]["COMPLAINT"]}</p>
+                <p class="par">{datas[5]["COMPLAINT"]}</p>
             </div>
             <div class="float-dr">Raised<hr>
-                <p class="par">{datas[0].rais}</p>
-                <p class="par">{datas[1].rais}</p>
-                <p class="par">{datas[2].rais}</p>
-                <p class="par">{datas[3].rais}</p>
-                <p class="par">{datas[4].rais}</p>
-                <p class="par">{datas[5].rais}</p>
+                <p class="par">{datas[0]["RAISE_DATE"]}</p>
+                <p class="par">{datas[1]["RAISE_DATE"]}</p>
+                <p class="par">{datas[2]["RAISE_DATE"]}</p>
+                <p class="par">{datas[3]["RAISE_DATE"]}</p>
+                <p class="par">{datas[4]["RAISE_DATE"]}</p>
+                <p class="par">{datas[5]["RAISE_DATE"]}</p>
             </div>
             <div class="float-dc">Responsibility<hr>
-                <p class="par">{datas[0].resp}</p>
-                <p class="par">{datas[1].resp}</p>
-                <p class="par">{datas[2].resp}</p>
-                <p class="par">{datas[3].resp}</p>
-                <p class="par">{datas[4].resp}</p>
-                <p class="par">{datas[5].resp}</p>
+                <p class="par">{datas[0]["RESPONSIBILITY"]}</p>
+                <p class="par">{datas[1]["RESPONSIBILITY"]}</p>
+                <p class="par">{datas[2]["RESPONSIBILITY"]}</p>
+                <p class="par">{datas[3]["RESPONSIBILITY"]}</p>
+                <p class="par">{datas[4]["RESPONSIBILITY"]}</p>
+                <p class="par">{datas[5]["RESPONSIBILITY"]}</p>
             </div>
             <div class="float-dc">Close<hr>
-                <p class="par">{datas[0].close}</p>
-                <p class="par">{datas[1].close}</p>
-                <p class="par">{datas[2].close}</p>
-                <p class="par">{datas[3].close}</p>
-                <p class="par">{datas[4].close}</p>
-                <p class="par">{datas[5].close}</p>
+                <p class="par">{datas[0]["TARGET_DATE"]}</p>
+                <p class="par">{datas[1]["TARGET_DATE"]}</p>
+                <p class="par">{datas[2]["TARGET_DATE"]}</p>
+                <p class="par">{datas[3]["TARGET_DATE"]}</p>
+                <p class="par">{datas[4]["TARGET_DATE"]}</p>
+                <p class="par">{datas[5]["TARGET_DATE"]}</p>
             </div>
             <div class="float-st">Status<hr>
-                <p class="par" style='background-color:{status_clr[0]};'>{datas[0].stat}</p>
-                <p class="par" style='background-color:{status_clr[1]};'>{datas[1].stat}</p>
-                <p class="par" style='background-color:{status_clr[2]};'>{datas[2].stat}</p>
-                <p class="par" style='background-color:{status_clr[3]};'>{datas[3].stat}</p>
-                <p class="par" style='background-color:{status_clr[4]};'>{datas[4].stat}</p>
-                <p class="par" style='background-color:{status_clr[5]};'>{datas[5].stat}</p>
+                <p class="par" style='background-color:{status_clr[0]};'>{datas[0]["STATUS"]}</p>
+                <p class="par" style='background-color:{status_clr[1]};'>{datas[1]["STATUS"]}</p>
+                <p class="par" style='background-color:{status_clr[2]};'>{datas[2]["STATUS"]}</p>
+                <p class="par" style='background-color:{status_clr[3]};'>{datas[3]["STATUS"]}</p>
+                <p class="par" style='background-color:{status_clr[4]};'>{datas[4]["STATUS"]}</p>
+                <p class="par" style='background-color:{status_clr[5]};'>{datas[5]["STATUS"]}</p>
             </div>
         </div>
     """,unsafe_allow_html=True)
@@ -2779,20 +2848,20 @@ def ftp_rejection():
 
 
 #************************** Letters Start **************************#
-
 def S_letter():
     # Parse the existing SVG file
     tree = ET.parse('resources\S.svg')
     root = tree.getroot()
     current_date = datetime.date.today()
     # days_in_current_month = calendar.monthrange(current_year, current_month)[1]   #for check total days in current month
-    total_days = (current_date.day)
-    # st.write(total_days)
+    # total_days = (current_date.day)
+    # st.write(current_date)
 
-    row_data = fetch_data("INCIDENCES DETAILS")
+    row_data = fetch_month_data("INCIDENCES DETAILS")
     first_day_of_month = current_date.replace(day=1)
+    # st.write(row_data)
     days_to_add = 0
-    for i in range(1, total_days):
+    for i in range(1, 32):
         colors = {
                 "record_lost_time": False, "record_accident": False,
                 "first_aid": False, "near_mis": False, "fire_mtd": False
@@ -2805,31 +2874,36 @@ def S_letter():
         new_date = first_day_of_month + datetime.timedelta(days=days_to_add)
         days_to_add += 1
         df = row_data[row_data["DATE"] == f"{new_date}"]
-        for index, row in df.iterrows():
-            if row["CATEGORY"] == "Recordable Loss Time Injury":
-                colors["record_lost_time"] = True
-            if row["CATEGORY"] == "Recordable Accident":
-                colors["record_accident"] = True
-            if row["CATEGORY"] == "First Aid":
-                colors["first_aid"] = True
-            if row["CATEGORY"] == "Near MIS":
-                colors["near_mis"] = True
-            if row["CATEGORY"] == "Fire":
-                colors["fire_mtd"] = True
-            # else:
-            #     color = 'gray'
-            
-            if new_date.weekday() == 6: color = "blue"
+        if len(row_data) == 0:
+            if new_date.weekday() == 6:
+                target_element.set('fill', 'blue')
+                tree.write('s_out.svg')
             else:
-                if colors["record_lost_time"] == True: color = "red"
-                elif colors["record_accident"] == True: color = "darkred"
-                elif colors["first_aid"] == True: color = "orange"
-                elif colors["near_mis"] == True: color = "yellow"
-                elif colors["fire_mtd"] == True: color = "blue"
-                else: color = "green"
-            # st.write(row["CATEGORY"])
-            target_element.set('fill', color)
-            tree.write('s_out.svg')
+                target_element.set('fill', 'gray')
+                tree.write('s_out.svg')
+        else:
+            for index, row in df.iterrows():
+                if row["CATEGORY"] == "Recordable Loss Time Injury":
+                    colors["record_lost_time"] = True
+                if row["CATEGORY"] == "Recordable Accident":
+                    colors["record_accident"] = True
+                if row["CATEGORY"] == "First Aid":
+                    colors["first_aid"] = True
+                if row["CATEGORY"] == "Near MIS":
+                    colors["near_mis"] = True
+                if row["CATEGORY"] == "Fire":
+                    colors["fire_mtd"] = True
+                
+                if new_date.weekday() == 6: color = "blue"
+                else:
+                    if colors["record_lost_time"] == True: color = "red"
+                    elif colors["record_accident"] == True: color = "darkred"
+                    elif colors["first_aid"] == True: color = "orange"
+                    elif colors["near_mis"] == True: color = "yellow"
+                    elif colors["fire_mtd"] == True: color = "blue"
+                    else: color = "green"
+                target_element.set('fill', color)
+                tree.write('s_out.svg')
 
     # Display the modified SVG using Streamlit
     with open('s_out.svg', 'r') as f:
@@ -2849,18 +2923,17 @@ def S_letter():
                     <p class="s" style='left:15rem; top:8.5rem; color:blue;'>FIRE</p>
                     <p class="s" style='left:15rem; top:10rem; color:green;'>NO INCIDENT</p>
                  </div>""", unsafe_allow_html=True)
-        
 
 def Q_letter():
     # Parse the existing SVG file
     tree = ET.parse('resources\Q.svg')
     root = tree.getroot()
     current_date = datetime.date.today()
-    total_days = (current_date.day)
-    row_data = fetch_data("CUSTOMER COMPLAINTS")
+    # total_days = (current_date.day)
+    row_data = fetch_month_data("CUSTOMER COMPLAINTS")
     first_day_of_month = current_date.replace(day=1)
     days_to_add = 0
-    for i in range(1, total_days):
+    for i in range(1, 32):
         if i < 10:
             target_element = root.find(f".//*[@id='q-u-day{i}']")
         else:
@@ -2868,12 +2941,17 @@ def Q_letter():
         new_date = first_day_of_month + datetime.timedelta(days=days_to_add)
         days_to_add += 1
         df = row_data[row_data["DATE"] == f"{new_date}"]
-        count_problem = len(df["COMPLAINT"])
-        if new_date.weekday() == 6: color = "blue"
+        if len(row_data) == 0:
+            if new_date.weekday() == 6: color = "blue"
+            else:
+                color = 'gray'
         else:
-            if count_problem > 1: color = 'red'
-            elif count_problem <= 1: color = 'green'
-            else: color = "gray"
+            count_problem = len(df["COMPLAINT"])
+            if new_date.weekday() == 6: color = "blue"
+            else:
+                if count_problem > 1: color = 'red'
+                elif count_problem <= 1: color = 'green'
+                else: color = "gray"
         target_element.set('fill', color)
         tree.write('q.svg')
     # Display the modified SVG using Streamlit
@@ -2891,36 +2969,43 @@ def Q_letter():
                 <p class="s" style='left:15rem; top:4rem; color:red;'>TARGET MISSED</p>
                 <p class="s" style='left:15rem; top:5.5rem; color:blue;'>PLANT OFF</p>
             </div>""", unsafe_allow_html=True)
-        
 
 def D_letter():
     # Parse the existing SVG file
     tree = ET.parse('resources\D.svg')
     root = tree.getroot()
     current_date = datetime.date.today()
-    total_days = (current_date.day)
-    row_data = fetch_data("OTIF_CC PDI")
+    # total_days = (current_date.day)
+    row_data = fetch_month_data("OTIF_CC PDI")
     first_day_of_month = current_date.replace(day=1)
     days_to_add = 0
-    for i in range(1, total_days):
+    for i in range(1, 32):
         if i < 10:
             target_element = root.find(f".//*[@id='d-u-day{i}']")
         else:
             target_element = root.find(f".//*[@id='d-u-day{i}_']")
         new_date = first_day_of_month + datetime.timedelta(days=days_to_add)
         days_to_add += 1
-        df = row_data[row_data["DATE"] == f"{new_date}"]
-        filter_data = df[df["CATEGORY"] == "OE"]
-        oe_target = filter_data["TARGET"]
-        oe_actual = filter_data["ACTUAL"]
-        comparison = np.where(oe_target > oe_actual, 'red', 'green')
-        if new_date.weekday() == 6: target_element.set('fill', "blue")
+        if len(row_data) == 0:
+            if new_date.weekday() == 6:
+                target_element.set('fill', 'blue')
+                tree.write('d.svg')
+            else:
+                target_element.set('fill', 'gray')
+                tree.write('d.svg')
         else:
-            for result in comparison:
-                # st.write(result)
-                color = result
-                target_element.set('fill', color)
-            tree.write('d.svg')
+            df = row_data[row_data["DATE"] == f"{new_date}"]
+            filter_data = df[df["CATEGORY"] == "OE"]
+            oe_target = filter_data["TARGET"]
+            oe_actual = filter_data["ACTUAL"]
+            comparison = np.where(oe_target > oe_actual, 'red', 'green')
+            if new_date.weekday() == 6: target_element.set('fill', "blue")
+            else:
+                for result in comparison:
+                    # st.write(result)
+                    color = result
+                    target_element.set('fill', color)
+                tree.write('d.svg')
     # Display the modified SVG using Streamlit
     with open('d.svg', 'r') as f:
         svg = f.read()
@@ -2937,17 +3022,16 @@ def D_letter():
                 <p class="s" style='left:15rem; top:5.5rem; color:blue;'>PLANT OFF</p>
             </div>""", unsafe_allow_html=True)
 
-        
 def C_letter():
     # Parse the existing SVG file
     tree = ET.parse('resources\C.svg')
     root = tree.getroot()
     current_date = datetime.date.today()
     total_days = (current_date.day)
-    row_data = fetch_data("PRODUCTIVITY AND OEE")
+    row_data = fetch_month_data("PRODUCTIVITY AND OEE")
     first_day_of_month = current_date.replace(day=1)
     days_to_add = 0
-    for i in range(1, total_days):
+    for i in range(1, 32):
         if i < 10:
             target_element = root.find(f".//*[@id='untitled-u-day{i}']")
         else:
@@ -2955,17 +3039,25 @@ def C_letter():
         # st.write(days_to_add)
         new_date = first_day_of_month + datetime.timedelta(days=days_to_add)
         days_to_add += 1
-        df = row_data[row_data["DATE"] == f"{new_date}"]
-        filter_data = df[df["CATEGORY"] == "HUMAN PRODUCTIVITY"]
-        oe_target = filter_data["TARGET"]
-        oe_actual = filter_data["ACTUAL"]
-        comparison = np.where(oe_target > oe_actual, 'red', 'green')
-        if new_date.weekday() == 6: target_element.set('fill', "blue")
+        if len(row_data) == 0:
+            if new_date.weekday() == 6:
+                target_element.set('fill', 'blue')
+                tree.write('c.svg')
+            else:
+                target_element.set('fill', 'gray')
+                tree.write('c.svg')
         else:
-            for result in comparison:
-                color = result
-                target_element.set('fill', color)
-            tree.write('c.svg')
+            df = row_data[row_data["DATE"] == f"{new_date}"]
+            filter_data = df[df["CATEGORY"] == "HUMAN PRODUCTIVITY"]
+            oe_target = filter_data["TARGET"]
+            oe_actual = filter_data["ACTUAL"]
+            comparison = np.where(oe_target > oe_actual, 'red', 'green')
+            if new_date.weekday() == 6: target_element.set('fill', "blue")
+            else:
+                for result in comparison:
+                    color = result
+                    target_element.set('fill', color)
+                tree.write('c.svg')
     # Display the modified SVG using Streamlit
     with open('c.svg', 'r') as f:
         svg = f.read()

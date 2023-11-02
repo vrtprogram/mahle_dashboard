@@ -815,7 +815,7 @@ if authentication_status:
                         st.write("update")
                     
         if slct == 'RAW Metarial PDI':
-            with sqlite3.connect('database/cost.db') as conn:
+            with sqlite3.connect('database/main_database.db') as conn:
                 cur = conn.cursor()
                 option = ["", "UPDATE", 'LOG']
                 selected = st.selectbox("RAW Metarial PDI", options=option, index=0)
@@ -843,7 +843,7 @@ if authentication_status:
                             if submit:
                                 for i in range(0, no_event):
                                     cur.execute(
-                                        f"""INSERT INTO 'RAW MATERIAL PDI' VALUES ("{datetime.now()}","{date}","{st.session_state[f'category{i}']}","{st.session_state[f'part_no{i}']}","{st.session_state[f'value_minr{i}']}","{st.session_state[f'actual_value_minr{i}']}","{st.session_state[f'pdi{i}']}","{st.session_state[f'issue{i}']}")"""
+                                        f"""INSERT INTO 'RAW MATERIAL PDI' VALUES ("{datetime.now()}","{date}","{st.session_state[f'category{i}']}","{st.session_state[f'part_no{i}']}","{st.session_state[f'value_minr{i}']}","{st.session_state[f'actual_value_minr{i}']}","{st.session_state[f'pdi{i}']}")"""
                                     )
                                 st.success("Data Saved")
                 if selected == 'UPDATE':
@@ -856,7 +856,7 @@ if authentication_status:
                             try:
                                 for _, row in edited_df.iterrows():
                                     cur.execute(
-                                        f'UPDATE COST SET CATEGORY = "{row["CATEGORY"]}", PART NO = "{row["PART NO"]}", VALUE_MINR = "{row["VALUE_MINR"]}", ACTUAL VALUE_MINR = "{row["ACTUAL VALUE_MINR"]}", PDI = "{row["PDI"]}", ISSUES = "{row["ISSUES"]}" WHERE TIME_STAMP = "{row["TIME_STAMP"]}" '
+                                        f'UPDATE COST SET CATEGORY = "{row["CATEGORY"]}", PART NO = "{row["PART NO"]}", VALUE_MINR = "{row["VALUE_MINR"]}", ACTUAL VALUE_MINR = "{row["ACTUAL VALUE_MINR"]}", PDI = "{row["PDI"]}" WHERE TIME_STAMP = "{row["TIME_STAMP"]}" '
                                     )
                                     conn.commit()
                                 st.success("Data Updated")

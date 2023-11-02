@@ -46,17 +46,6 @@ def main():
             color = "blue"
             st.markdown("""<center><div style='background-color:lightgray; width:95%; font-weight:bold;'>Delivery</div></center>""", unsafe_allow_html=True)
             D_letter()
-            # st.markdown(f"""
-            #     <center><div>
-            #         <svg class="svg-container" height="150" width="450">
-            #             <text x="20" y="130" font-size="10rem" font-weight="bold" font-family="Arial" fill={color}>D</text>
-            #             <text x="250" y="30" font-size="0.65rem" font-weight="bold" fill="black">LEGEND:</text>
-            #             <text x="250" y="50" font-size="0.65rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
-            #             <text x="250" y="70" font-size="0.65rem" font-weight="bold" fill="red">TARGET MISSED</text>
-            #             <text x="250" y="90" font-size="0.65rem" font-weight="bold" fill="blue">PLANT OFF</text>
-            #         </svg>
-            #     </center></div>
-            #     """, unsafe_allow_html=True)
             st.markdown(
                 """<center style = "height:2rem;">
                 <br>                
@@ -82,17 +71,7 @@ def main():
                 color = "orange"
                 st.markdown("""<center><div style='background-color:lightgray; width:95%; font-weight:bold;'>Quality</div></center>""", unsafe_allow_html=True)
                 Q_letter()
-                # st.markdown(f"""
-                #     <center><div>
-                #         <svg class="svg-container" height="150" width="450">
-                #             <text x="10" y="130" font-size="10rem" font-weight="bold" font-family="Arial" fill={color}>Q</text>
-                #             <text x="250" y="30" font-size="0.65rem" font-weight="bold" fill="black">LEGEND:</text>
-                #             <text x="250" y="50" font-size="0.65rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
-                #             <text x="250" y="70" font-size="0.65rem" font-weight="bold" fill="red">TARGET MISSED</text>
-                #             <text x="250" y="90" font-size="0.65rem" font-weight="bold" fill="blue">PLANT OFF</text>
-                #         </svg>
-                #     </center></div>
-                #     """, unsafe_allow_html=True)
+                
                 st.markdown("""
                        <center style = "height:2rem;"> <br> <p style = "font-size:13px;">______ days since customer complaint.</p> </center>
                    """, unsafe_allow_html=True)
@@ -111,17 +90,7 @@ def main():
                 color = "green"
                 st.markdown("""<center><div style='background-color:lightgray; width:95%; font-weight:bold;'>Cost</div></center>""", unsafe_allow_html=True)
                 C_letter()
-                # st.markdown(f"""
-                #     <center><div>
-                #         <svg class="svg-container" height="150" width="450">
-                #             <text x="20" y="130" font-size="10rem" font-weight="bold" font-family="Arial" fill={color}>C</text>
-                #             <text x="250" y="30" font-size="0.65rem" font-weight="bold" fill="black">LEGEND:</text>
-                #             <text x="250" y="50" font-size="0.65rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
-                #             <text x="250" y="70" font-size="0.65rem" font-weight="bold" fill="red">TARGET MISSED</text>
-                #             <text x="250" y="90" font-size="0.65rem" font-weight="bold" fill="blue">PLANT OFF</text>
-                #         </svg>
-                #     </center></div>
-                #     """, unsafe_allow_html=True)
+                
                 st.markdown("""
                     <center style = "height:2rem;">
                     <br>

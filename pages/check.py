@@ -1,5 +1,5 @@
 import streamlit as st
-from methods.main import layout, fetch_data, bar_graph
+from methods.main import layout, fetch_data, data_filter_between
 from datetime import date
 from datetime import datetime as dt
 from datetime import datetime
@@ -10,9 +10,11 @@ import pandas as pd
 layout("this page only for testing")
 
 def main():
-
-    with st.expander("See explanation"):
-        st.write("this is expand")
+    year = datetime.now().year
+    strt_date = f"{year}-01-01"
+    end_date = f"{year}-12-31"
+    row_data = data_filter_between("INCIDENCES DETAILS", strt_date, end_date)
+    # st.table(row_data)
         
     # bar_graph("SALE PLAN VS ACTUAL")
 
