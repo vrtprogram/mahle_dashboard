@@ -57,87 +57,170 @@ if authentication_status:
         authenticator.logout("Logout")
     st.write("<H1>Select From Below Options To Enter Data", unsafe_allow_html=True)
 
-    options = ['', 'Safety', 'Quality', 'Delivery', 'Cost', 'Personal', ]
+    options = ['', 'Safety', 'Quality', 'Delivery', 'Cost', 'Personal', 'Set_Daily_Target' ]
 
     selected = st.selectbox('Menu', options=options)
     # -------Data Entry Pages --------------------------------#
 
     # **************** Personal **************************#
     if selected == 'Personal':
-        with sqlite3.connect('database/personal.db') as conn:
-            cur = conn.cursor()
-            # PROVIDING OPTIONS
-            option = ["", "UPDATE", 'LOG']
-            selected = st.selectbox("Select Action To Perform", options=option, index=0)
-            # ACTIONS ACCORDING TO OPTIONS
-            if selected == 'LOG':
-                with st.form("Personal Data", clear_on_submit=False):
-                    date = st.date_input("Date")
-                    col1, col2 = st.columns((1, 1), gap="small")
-                    with col1:
-                        total_manpower_req = st.number_input('Planned Manpower Required', format='%d', step=1, min_value=0)
-                    with col2:
-                        total_manpower_present = st.number_input("Total Manpower Present", format='%d', step=1, min_value=0)
+        c_opt = ['', 'Personal Gap', 'Visits/Audits', 'Attendance Sheet']
+        slct = st.selectbox('Personal', options=c_opt)
+        if slct == 'Personal Gap':
+            with sqlite3.connect('database/main_database.db') as conn:
+                cur = conn.cursor()
+                # PROVIDING OPTIONS
+                option = ["", "UPDATE", 'LOG']
+                selected = st.selectbox("Select Action To Perform", options=option, index=0)
+                # ACTIONS ACCORDING TO OPTIONS
+                if selected == 'LOG':
+                    with st.form("Personal Data", clear_on_submit=False):
+                        date = st.date_input("Date")
+                        col1, col2, col3 = st.columns((1, 1, 1), gap="small")
+                        with col1:
+                            total_manpower_req = st.number_input('Planned Manpower Required', format='%d', step=1, min_value=0)
+                        with col2:
+                            total_manpower_present = st.number_input("Total Manpower Present", format='%d', step=1, min_value=0)
+                        with col3:
+                            issue = st.text_input("Issue")
 
-                    st.write("<u>Breakup of Manpower</u>:", unsafe_allow_html=True)
-                    col1, col2 = st.columns((2, 2), gap="small")
-                    with col1:
-                        prod_casual = st.number_input("Production Casual", step=1, min_value=0)
-                    with col2:
-                        non_prod_casual = st.number_input("Non Production Casual", step=1, min_value=0)
-
-                    summited = st.form_submit_button('Save')
-                    if summited:
-                        # PERFORMING ALL THE CALCULATIONS FOR ON THE DATA
-                        total_manpower_absent = total_manpower_req - total_manpower_present
-                        total_casual = prod_casual + non_prod_casual
-                        try:
-                            personal_gap = (
-                                    ((total_manpower_req - total_manpower_present) / total_manpower_req) * 100).__format__(
-                                ".3")
-                        except Exception as e:
-                            st.write(e)
-                            personal_gap = 0
-                        # ANNOTATING ALL THE VALUES
-                        if personal_gap != 0:
-                            annotated_text("Total Manpower Present : ", (f"{total_manpower_present}", "", "green"))
-                            annotated_text("Total Staff Present : ",
-                                        (f"{total_manpower_present - total_casual}", "", 'green'))
-                            annotated_text("Total Casual Present : ", (f'{total_casual}', "", "blue"))
-                            annotated_text("Personal Gap : ", (f'{personal_gap}%', "", "red"))
-
+                        summited = st.form_submit_button('Save')
+                        if summited:
                             # LOGING ALL DATA INTO THE DATA BASE
                             cur.execute(
-                                f'INSERT INTO PERSONAL VALUES ("{datetime.now()}","{date}",{total_manpower_req}, {total_manpower_absent},{total_casual})')
+                                f'INSERT INTO "PERSONAL GAP" (TIME_STAMP, DATE, "PLANNED MANPOWER", "ACTUAL MANPOWER", "ISSUE") VALUES ("{datetime.now()}","{date}",{total_manpower_req}, {total_manpower_present}, "{issue}")')
                             conn.commit()
                             st.success("Data Saved")
 
-            if selected == 'UPDATE':
-                # st.write("Updating Personal")
-                date = st.date_input("Select date to update the status")
+                if selected == 'UPDATE':
+                    # st.write("Updating Personal")
+                    date = st.date_input("Select date to update the status")
+                    if date is not None:
+                        st.write(f"The Selected date is {date}")
+                        df = pd.read_sql_query(f'Select * from "PERSONAL GAP"  where date = "{date}"', conn)
+                        edited_df = st.data_editor(df, width=1600)
+                        # print(edited_df)
+                        update = st.button("Data Update")
+                        if update:
+                            try:
+                                for _, row in edited_df.iterrows():
+                                    cur.execute(
+                                        f'UPDATE "PERSONAL GAP"  SET "PLANNED MANPOWER" = "{row["PLANNED MANPOWER"]}","ACTUAL MANPOWER" = "{row["ACTUAL MANPOWER"]}","PERSONAL GAP"= "{row["PERSONAL GAP"]}","ISSUE"= "{row["ISSUE"]}"  WHERE TIME_STAMP = "{row["TIME_STAMP"]}" ')
+                                    conn.commit()
+                                st.success("Data Updated")
+                            except Exception as e:
+                                st.warning(e)
+                        time_stamp = st.text_input("Enter The Time Stamp To Delete")
+                        button = st.button("Delete Entry")
+                        if button:
+                            cur.execute(f"DELETE FROM 'PERSONAL GAP'  WHERE Time_Stamp = '{time_stamp}'")
+                            conn.commit()
+                            st.success("Success ")
+                            st.rerun()
+        if slct == 'Visits/Audits':
+            with sqlite3.connect('database/main_database.db') as conn:
+                cur = conn.cursor()
+                # PROVIDING OPTIONS
+                option = ["", "UPDATE", 'LOG']
+                selected = st.selectbox("Select Action To Perform", options=option, index=0)
+                # ACTIONS ACCORDING TO OPTIONS
+                if selected == 'LOG':
+                    with st.form("Personal Data", clear_on_submit=False):
+                        date = st.date_input("Date")
+                        col1, col2, col3= st.columns((1, 1, 1), gap="small")
+                        with col1:
+                            purpose = st.text_input("Purpose of visit")
+                        with col2:
+                            visit_by = st.text_input("Visit/Audit by")
+                        with col3:
+                            responsible = st.text_input("Responsibility")
 
-                if date is not None:
-                    st.write(f"The Selected date is {date}")
-                    df = pd.read_sql_query(f'Select * from PERSONAL where date = "{date}"', conn)
-                    edited_df = st.data_editor(df, width=1600)
-                    # print(edited_df)
-                    update = st.button("Data Update")
-                    if update:
-                        try:
-                            for _, row in edited_df.iterrows():
+                        summited = st.form_submit_button('Save')
+                        if summited:
+                                # LOGING ALL DATA INTO THE DATA BASE
                                 cur.execute(
-                                    f'UPDATE PERSONAL SET Manpower_Req = "{row["Manpower_Req"]}",Manpower_Absent = "{row["Manpower_Absent"]}",Casual_Present= "{row["Casual_Present"]}"  WHERE TIME_STAMP = "{row["Time_Stamp"]}" ')
+                                    f'INSERT INTO "VISITS OR AUDITS" VALUES ("{datetime.now()}","{date}","{purpose}", "{visit_by}","{responsible}")')
                                 conn.commit()
-                            st.success("Data Updated")
-                        except Exception as e:
-                            st.warning(e)
-                    time_stamp = st.text_input("Enter The Time Stamp To Delete")
-                    button = st.button("Delete Entry")
-                    if button:
-                        cur.execute(f"DELETE FROM Personal WHERE Time_Stamp = '{time_stamp}'")
-                        conn.commit()
-                        st.success("Success ")
-                        st.rerun()
+                                st.success("Data Saved")
+
+                if selected == 'UPDATE':
+                    # st.write("Updating Personal")
+                    date = st.date_input("Select date to update the status")
+
+                    if date is not None:
+                        st.write(f"The Selected date is {date}")
+                        df = pd.read_sql_query(f'Select * from "VISITS OR AUDITS" where date = "{date}"', conn)
+                        edited_df = st.data_editor(df, width=1600)
+                        # print(edited_df)
+                        update = st.button("Data Update")
+                        if update:
+                            try:
+                                for _, row in edited_df.iterrows():
+                                    cur.execute(
+                                        f'UPDATE "VISITS OR AUDITS" SET PURPOSE = "{row["PURPOSE"]}","VISITED BY" = "{row["VISITED BY"]}",RESPONSIBILITY= "{row["RESPONSIBILITY"]}"  WHERE TIME_STAMP = "{row["TIME_STAMP"]}" ')
+                                    conn.commit()
+                                st.success("Data Updated")
+                            except Exception as e:
+                                st.warning(e)
+                        time_stamp = st.text_input("Enter The Time Stamp To Delete")
+                        button = st.button("Delete Entry")
+                        if button:
+                            cur.execute(f"DELETE FROM 'VISITS OR AUDITS' WHERE Time_Stamp = '{time_stamp}'")
+                            conn.commit()
+                            st.success("Success ")
+                            st.rerun()
+        if slct == 'Attendance Sheet':
+            with sqlite3.connect('database/main_database.db') as conn:
+                cur = conn.cursor()
+                # PROVIDING OPTIONS
+                option = ["", "UPDATE", 'LOG']
+                selected = st.selectbox("Select Action To Perform", options=option, index=0)
+                # ACTIONS ACCORDING TO OPTIONS
+                if selected == 'LOG':
+                    with st.form("Personal Data", clear_on_submit=False):
+                        date = st.date_input("Date")
+                        col1, col2, col3 = st.columns((1, 1, 1), gap="small")
+                        with col1:
+                            emp_name = st.text_input("Employee Name")
+                        with col2:
+                            emp_id = st.text_input("Employee ID")
+                        with col3:
+                            time = st.time_input("Time")
+
+                        summited = st.form_submit_button('Save')
+                        if summited:
+                                # LOGING ALL DATA INTO THE DATA BASE
+                                cur.execute(
+                                    f'INSERT INTO ATTENDANCE VALUES ("{datetime.now()}","{date}","{emp_name}", "{emp_id}","{time}")')
+                                conn.commit()
+                                st.success("Data Saved")
+
+                if selected == 'UPDATE':
+                    # st.write("Updating Personal")
+                    date = st.date_input("Select date to update the status")
+
+                    if date is not None:
+                        st.write(f"The Selected date is {date}")
+                        df = pd.read_sql_query(f'Select * from ATTENDANCE where date = "{date}"', conn)
+                        edited_df = st.data_editor(df, width=1600)
+                        # print(edited_df)
+                        update = st.button("Data Update")
+                        if update:
+                            try:
+                                for _, row in edited_df.iterrows():
+                                    cur.execute(
+                                        f'UPDATE ATTENDANCE SET "EMPLOYEE NAME" = "{row["EMPLOYEE NAME"]}","EMPLOYEE ID" = "{row["EMPLOYEE ID"]}","IN TIME"= "{row["IN TIME"]}"  WHERE TIME_STAMP = "{row["TIME_STAMP"]}" ')
+                                    conn.commit()
+                                st.success("Data Updated")
+                            except Exception as e:
+                                st.warning(e)
+                        time_stamp = st.text_input("Enter The Time Stamp To Delete")
+                        button = st.button("Delete Entry")
+                        if button:
+                            cur.execute(f"DELETE FROM ATTENDANCE WHERE Time_Stamp = '{time_stamp}'")
+                            conn.commit()
+                            st.success("Success ")
+                            st.rerun()
 
     # ***************** Delivery ****************************#
     if selected == 'Delivery':
@@ -704,7 +787,7 @@ if authentication_status:
 
     # ******************* Cost *********************** #
     if selected == 'Cost':
-        c_opt = ['', 'Productivity and OEE', 'RAW Metarial PDI', 'Machine Breakdown Time']
+        c_opt = ['', 'Productivity and OEE', 'Machine Breakdown Time']
         slct = st.selectbox('Cost', options=c_opt)
         if slct == 'Productivity and OEE':
             with sqlite3.connect('database/main_database.db') as conn:
@@ -814,62 +897,62 @@ if authentication_status:
                                 st.rerun()
                         st.write("update")
                     
-        if slct == 'RAW Metarial PDI':
-            with sqlite3.connect('database/main_database.db') as conn:
-                cur = conn.cursor()
-                option = ["", "UPDATE", 'LOG']
-                selected = st.selectbox("RAW Metarial PDI", options=option, index=0)
-                # ACTIONS ACCORDING TO OPTIONS
-                if selected == 'LOG':
-                    no_event = st.number_input("Enter number of events to log", step=1)
-                    if no_event > 0:
-                        with st.form("cost"):
-                            date = st.date_input("Date")
-                            col1, col2, col3, col4, col5, col6 = st.columns((1, 1, 1, 1, 1, 1))
-                            for i in range(0, no_event):
-                                with col1:
-                                    st.selectbox("Category", options=['','A', 'B', 'C'], key=f"category{i}")
-                                with col2:
-                                    st.text_input("Part No", key=f"part_no{i}")
-                                with col3:
-                                    st.number_input("Value MINR", key=f"value_minr{i}")
-                                with col4:
-                                    st.number_input("Actual Value MINR", key=f"actual_value_minr{i}")
-                                with col5:
-                                    st.text_input("PDI", key=f"pdi{i}")
-                                with col6:
-                                    st.multiselect("Select Issues", options=['issue1','issue2','issue3','issue4'], key=f"issue{i}")
-                            submit = st.form_submit_button("Save")
-                            if submit:
-                                for i in range(0, no_event):
-                                    cur.execute(
-                                        f"""INSERT INTO 'RAW MATERIAL PDI' VALUES ("{datetime.now()}","{date}","{st.session_state[f'category{i}']}","{st.session_state[f'part_no{i}']}","{st.session_state[f'value_minr{i}']}","{st.session_state[f'actual_value_minr{i}']}","{st.session_state[f'pdi{i}']}")"""
-                                    )
-                                st.success("Data Saved")
-                if selected == 'UPDATE':
-                    date = st.date_input("Select date to update data")
-                    if date is not None:
-                        df = pd.read_sql_query(f"""Select * from 'RAW MATERIAL PDI' where date = "{date}" """,conn)
-                        edited_df = st.data_editor(df, width=1600)
-                        update = st.button("Data Update")
-                        if update:
-                            try:
-                                for _, row in edited_df.iterrows():
-                                    cur.execute(
-                                        f'UPDATE COST SET CATEGORY = "{row["CATEGORY"]}", PART NO = "{row["PART NO"]}", VALUE_MINR = "{row["VALUE_MINR"]}", ACTUAL VALUE_MINR = "{row["ACTUAL VALUE_MINR"]}", PDI = "{row["PDI"]}" WHERE TIME_STAMP = "{row["TIME_STAMP"]}" '
-                                    )
-                                    conn.commit()
-                                st.success("Data Updated")
-                            except Exception as e:
-                                st.write(e)
-                        time_stamp = st.text_input("Enter the time stamp to delete")
-                        button = st.button("Delete Entery")
-                        if button:
-                            cur.execute(f"DELETE FROM 'RAW MATERIAL PDI' WHERE Time_Stamp = '{time_stamp}' ")
-                            conn.commit()
-                            st.success("Success")
-                            st.rerun()
-                    st.write("update")
+        # if slct == 'RAW Metarial PDI':
+        #     with sqlite3.connect('database/main_database.db') as conn:
+        #         cur = conn.cursor()
+        #         option = ["", "UPDATE", 'LOG']
+        #         selected = st.selectbox("RAW Metarial PDI", options=option, index=0)
+        #         # ACTIONS ACCORDING TO OPTIONS
+        #         if selected == 'LOG':
+        #             no_event = st.number_input("Enter number of events to log", step=1)
+        #             if no_event > 0:
+        #                 with st.form("cost"):
+        #                     date = st.date_input("Date")
+        #                     col1, col2, col3, col4, col5, col6 = st.columns((1, 1, 1, 1, 1, 1))
+        #                     for i in range(0, no_event):
+        #                         with col1:
+        #                             st.selectbox("Category", options=['','A', 'B', 'C'], key=f"category{i}")
+        #                         with col2:
+        #                             st.text_input("Part No", key=f"part_no{i}")
+        #                         with col3:
+        #                             st.number_input("Value MINR", key=f"value_minr{i}")
+        #                         with col4:
+        #                             st.number_input("Actual Value MINR", key=f"actual_value_minr{i}")
+        #                         with col5:
+        #                             st.text_input("PDI", key=f"pdi{i}")
+        #                         with col6:
+        #                             st.multiselect("Select Issues", options=['issue1','issue2','issue3','issue4'], key=f"issue{i}")
+        #                     submit = st.form_submit_button("Save")
+        #                     if submit:
+        #                         for i in range(0, no_event):
+        #                             cur.execute(
+        #                                 f"""INSERT INTO 'RAW MATERIAL PDI' VALUES ("{datetime.now()}","{date}","{st.session_state[f'category{i}']}","{st.session_state[f'part_no{i}']}","{st.session_state[f'value_minr{i}']}","{st.session_state[f'actual_value_minr{i}']}","{st.session_state[f'pdi{i}']}")"""
+        #                             )
+        #                         st.success("Data Saved")
+        #         if selected == 'UPDATE':
+        #             date = st.date_input("Select date to update data")
+        #             if date is not None:
+        #                 df = pd.read_sql_query(f"""Select * from 'RAW MATERIAL PDI' where date = "{date}" """,conn)
+        #                 edited_df = st.data_editor(df, width=1600)
+        #                 update = st.button("Data Update")
+        #                 if update:
+        #                     try:
+        #                         for _, row in edited_df.iterrows():
+        #                             cur.execute(
+        #                                 f'UPDATE COST SET CATEGORY = "{row["CATEGORY"]}", PART NO = "{row["PART NO"]}", VALUE_MINR = "{row["VALUE_MINR"]}", ACTUAL VALUE_MINR = "{row["ACTUAL VALUE_MINR"]}", PDI = "{row["PDI"]}" WHERE TIME_STAMP = "{row["TIME_STAMP"]}" '
+        #                             )
+        #                             conn.commit()
+        #                         st.success("Data Updated")
+        #                     except Exception as e:
+        #                         st.write(e)
+        #                 time_stamp = st.text_input("Enter the time stamp to delete")
+        #                 button = st.button("Delete Entery")
+        #                 if button:
+        #                     cur.execute(f"DELETE FROM 'RAW MATERIAL PDI' WHERE Time_Stamp = '{time_stamp}' ")
+        #                     conn.commit()
+        #                     st.success("Success")
+        #                     st.rerun()
+        #             st.write("update")
                     
         if slct == 'Machine Breakdown Time':
             with sqlite3.connect('database/main_database.db') as conn:
@@ -889,15 +972,15 @@ if authentication_status:
                                 with col2:
                                     st.text_input("Machine", key=f"machine{i}")
                                 with col3:
-                                    st.time_input("B/D Time", key=f"b/d_time{i}")
+                                    st.number_input("B/D Time", key=f"b/d_time{i}")
                                 with col4:
-                                    st.multiselect("Select Issues", options=['issue1','issue2','issue3','issue4'], key=f"issue{i}")
+                                    st.text_input("Issues", key=f"issue{i}")
                                 with col5:
                                     st.text_input("Action", key=f"action{i}")
                                 with col6:
                                     st.selectbox("Status", options=['','Open', 'Closed', 'Inprocess'], key=f"status{i}")
                                 with col7:
-                                    st.text_input("Delivery Failure", key=f"delivery_failure{i}")
+                                    st.selectbox("Delivery Failure", options=['','Yes', 'No'], key=f"delivery_failure{i}")
 
                             submit = st.form_submit_button("Save")
                             if submit:
@@ -930,6 +1013,53 @@ if authentication_status:
                             st.success("Success")
                             st.rerun()
                     st.write("update")
+
+    # ******************* Daily Target Set *********************** #
+    if selected == 'Set_Daily_Target':
+        with sqlite3.connect('database/main_database.db') as conn:
+            cur = conn.cursor()
+            option = ["", "UPDATE", 'LOG']
+            selected = st.selectbox("Set_Daily_Target", options=option, index=0)
+            # ACTIONS ACCORDING TO OPTIONS
+            if selected == 'LOG':
+                with st.form("cost"):
+                    date = st.date_input("Date")
+                    col1, col2= st.columns((1, 1))
+                    with col1:
+                        category = st.selectbox("Category", options=['','Incident details', 'Incident Practices', 'Customer Complaint', 'Machine Breakdown Time', 'Personal Gap'])
+                    with col2:
+                        target = st.number_input("Target")
+                    submit = st.form_submit_button("Save")
+                    if submit:
+                        cur.execute(
+                            f"""INSERT INTO 'SET DAILY TARGET' VALUES ("{datetime.now()}","{date}","{category}","{target}")"""
+                        )
+                        st.success("Data Saved")
+            if selected == 'UPDATE':
+                date = st.date_input("Select date to update data")
+                if date is not None:
+                    df = pd.read_sql_query(f"""Select * from 'SET DAILY TARGET' where date = "{date}" """,conn)
+                    edited_df = st.data_editor(df, width=1600)
+                    update = st.button("Data Update")
+                    if update:
+                        try:
+                            for _, row in edited_df.iterrows():
+                                cur.execute(
+                                    f'UPDATE "SET DAILY TARGET" SET CATEGORY = "{row["CATEGORY"]}", VALUE = "{row["VALUE"]}" WHERE TIME_STAMP = "{row["TIME_STAMP"]}" '
+                                )
+                                conn.commit()
+                            st.success("Data Updated")
+                        except Exception as e:
+                            st.write(e)
+                    time_stamp = st.text_input("Enter the time stamp to delete")
+                    button = st.button("Delete Entery")
+                    if button:
+                        cur.execute(f"DELETE FROM 'SET DAILY TARGET' WHERE Time_Stamp = '{time_stamp}' ")
+                        conn.commit()
+                        st.success("Success")
+                        st.rerun()
+                st.write("update")
+        pass
 
     if selected == '':
         annotated_text(("Welcome to Database Manager , You can Update the database here !!!", "", "green"))

@@ -2,18 +2,289 @@ import streamlit as st
 from methods.main import layout, fetch_data, data_filter_between
 from datetime import date
 from datetime import datetime as dt
-from datetime import datetime
+from datetime import datetime, timedelta
 import sqlite3
 import plotly.graph_objects as go
 import pandas as pd
+import plotly.express as px
+import numpy as np
+from xml.etree import ElementTree as ET
+import base64
+from streamlit.components.v1 import html
+import time
 
 layout("this page only for testing")
 
 def main():
-    year = datetime.now().year
-    strt_date = f"{year}-01-01"
-    end_date = f"{year}-12-31"
-    row_data = data_filter_between("INCIDENCES DETAILS", strt_date, end_date)
+
+    # Initialize messages list in session_state
+    # if "messages" not in st.session_state:
+    #     st.session_state.messages = []
+    # # Function to add a message to the chat history
+    # def add_message(sender, message, timestamp):
+    #     st.session_state.messages.append({"sender": sender, "message": message, "timestamp": timestamp})
+    # # Function to display the chat history
+    # def display_chat_history():
+    #     for msg in st.session_state.messages:
+    #         st.write(f"{msg['timestamp']} - {msg['sender']}: {msg['message']}")
+    # st.title("Simple Chat App")
+    # message_input = st.chat_input("Your Message:", key="message_input")
+    # if message_input:
+    #     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    #     add_message("You", message_input, current_time)
+    # # Display chat history
+    # st.header("Chat History")
+    # display_chat_history()
+
+
+    # my_html = """
+    # <script>
+    #     function startTimer(duration, display) {
+    #         var timer = duration, minutes, seconds;
+    #         setInterval(function () {
+    #             minutes = parseInt(timer / 60, 10)
+    #             seconds = parseInt(timer % 60, 10);
+    #             minutes = minutes < 10 ? "0" + minutes : minutes;
+    #             seconds = seconds < 10 ? "0" + seconds : seconds;
+    #             display.textContent = minutes + ":" + seconds;
+    #             if (--timer < 0) {
+    #                 timer = duration;
+    #             }
+    #         }, 1000);
+    #     }
+    #     window.onload = function () {
+    #         var fiveMinutes = 60 * 5,
+    #             display = document.querySelector('#time');
+    #         startTimer(fiveMinutes, display);
+    #     };
+    # </script>
+    # <body>
+    #     <div>Registration closes in <span id="time">05:00</span> minutes!</div>
+    # </body>
+    # """
+    # html(my_html)
+    # if st.button("Is blocked?"):
+    #     st.write("No, you can still interact")
+    #     st.balloons()
+
+
+    df = fetch_data("PERSONAL GAP")
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    current_month = pd.Timestamp('now').to_period('M')
+    pg_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
+    pg_target = fetch_data("SET DAILY TARGET")
+    pg_target = pg_target[pg_target["CATEGORY"] == 'Personal Gap']
+    monthly_target = pg_target[((pg_target["DATE"].dt.to_period("M")) == current_month)]
+    today_date = datetime.now()
+    current_week_number = today_date.strftime('%U')
+    cl1,cl2,cl3 = st.columns((1,1,1))
+    with cl1:   # ****** Daily_Data ****** #
+        st.markdown("")
+        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.7rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
+        desired_data = pg_data[pg_data['DATE'].dt.strftime('%U') == current_week_number]
+        daily_data = desired_data.groupby(desired_data['DATE'].dt.to_period('D'))['PERSONAL GAP'].sum()
+        daily_data.index = daily_data.index.strftime('%b %d')
+        daily_color = []
+        for i in daily_data.index:
+            # Format the date in the same way as the monthly_target data for comparison
+            formatted_date = datetime.strptime(i, '%b %d').strftime('%b %d')
+            # Find the corresponding row in monthly_target with the same formatted date
+            matching_target = monthly_target[monthly_target['DATE'].dt.strftime('%b %d') == formatted_date]
+            
+            if not matching_target.empty:
+                target_value = matching_target["VALUE"].values[0]
+                # print(daily_data[i], target_value)
+                if daily_data[i] > target_value:
+                    daily_color.append("#fa2323")  # Complaints exceed target
+                else:
+                    daily_color.append("#5fe650")  # Complaints meet or are below target
+            else:
+                daily_color.append("#5fe650")
+                
+        fig = go.Figure(data=[go.Bar(x=daily_data.index, y=daily_data, marker_color=daily_color)])
+        # Customize the chart layout
+        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Days', yaxis_title='Personal Gap')
+        # Display the chart in Streamlit
+        st.plotly_chart(fig)
+
+    with cl2:   # ****** Weekly_Data ****** #
+        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
+        weekly_data = pg_data.groupby(pg_data['DATE'].dt.to_period('W'))[['ACTUAL MANPOWER', 'PLANNED MANPOWER']].sum()
+        weekly_data['NEW_PG'] = round(((weekly_data['PLANNED MANPOWER'] - weekly_data['ACTUAL MANPOWER'])/weekly_data['PLANNED MANPOWER'])*100, 2)
+        # st.write(weekly_data['NEW_PG'])
+        weekly_target = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
+        weekly_data.index = range(1, len(weekly_data) + 1)
+        weekly_color = []
+        for i in weekly_data.index:
+            target_value = weekly_target.get(i, 0)
+            data_value = weekly_data.loc[i, 'NEW_PG']
+            if data_value > target_value:
+                weekly_color.append("#fa2323")  # Data exceed target
+            else:
+                weekly_color.append("#5fe650")  # Data meet or are below target
+        fig = go.Figure(data=[go.Bar(x=weekly_data.index, y=weekly_data['NEW_PG'], marker_color=weekly_color)])
+        # Customize the chart layout
+        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Weeks', yaxis_title='Personal Gap')
+        # Display the chart in Streamlit
+        st.plotly_chart(fig)
+
+    with cl3:   # ****** Monthly_Data ****** #
+        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Monthly Trend</center>""",unsafe_allow_html=True)
+        monthly_data = df.groupby(df['DATE'].dt.to_period('M'))[['ACTUAL MANPOWER', 'PLANNED MANPOWER']].sum()
+        monthly_target = pg_target.groupby(pg_target['DATE'].dt.to_period('M'))['VALUE'].sum()
+        monthly_data['NEW_PG'] = round(((monthly_data['PLANNED MANPOWER'] - monthly_data['ACTUAL MANPOWER'])/monthly_data['PLANNED MANPOWER'])*100, 2)
+        monthly_data.index = monthly_data.index.strftime('%b')
+        monthly_color = []
+        for i in monthly_data.index:
+            target_value = monthly_target.get(i, 0)
+            data_value = monthly_data.loc[i, 'NEW_PG']
+            if data_value > target_value:
+                monthly_color.append("#fa2323")  # Data exceed target
+            else:
+                monthly_color.append("#5fe650")  # Data meet or are below target
+        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=monthly_data['NEW_PG'], marker_color=monthly_color)])
+        # Customize the chart layout
+        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Months', yaxis_title='Personal Gap')
+        # Display the chart in Streamlit
+        st.plotly_chart(fig)
+
+
+    
+
+    data = {
+        "DATE": pd.date_range(start="2023-11-01", periods=56, freq="D"),
+        "TARGET": [80, 80, 80, 80, 80, 80, 80] * 8,
+        "ACTUAL": [78, 82, 76, 85, 79, 81, 77] * 8,
+    }
+
+    # Convert data to DataFrame
+    hp_data = pd.DataFrame(data)
+
+    # Define a function to create a bar chart
+    def create_bar_chart(data, title):
+        # Calculate the color based on the comparison between ACTUAL and TARGET
+        data['COLOR'] = np.where(data['ACTUAL'] >= data['TARGET'], 'green', 'red')
+        
+        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
+        colors = {'green': '#008000', 'red': '#FF0000'}
+
+        fig = go.Figure(data=[
+            go.Bar(
+                x=data['DATE'],
+                y=data['ACTUAL'],
+                marker_color=[colors[color] for color in data['COLOR']],
+            ),
+        ])
+
+        fig.update_layout(
+            xaxis_title='Date',
+            yaxis_title='Actual',
+            title=title,
+        )
+
+        st.plotly_chart(fig)
+
+    st.subheader("Weekly Trend - Plant PPM")
+    weekly_data = hp_data.resample('W-MON', on='DATE').agg({'DATE': 'first', 'TARGET': 'mean', 'ACTUAL': 'mean'}).reset_index(drop=True)
+    weekly_data = weekly_data.dropna()  # Remove rows with NaN values
+    create_bar_chart(weekly_data, "Weekly Trend - Plant PPM")
+
+    st.subheader("Monthly Trend - Plant PPM")
+    monthly_data = hp_data.resample('M', on='DATE').agg({'DATE': 'first', 'TARGET': 'mean', 'ACTUAL': 'mean'}).reset_index(drop=True)
+    monthly_data = monthly_data.dropna()  # Remove rows with NaN values
+    create_bar_chart(monthly_data, "Monthly Trend - Plant PPM")
+
+
+
+    with sqlite3.connect("database/main_database.db") as con:
+        query = f"SELECT * from 'OTIF_CC PDI'"
+        df = pd.read_sql_query(query, con)
+        oe = df[(df["CATEGORY"] == "OE") & (df["ACTUAL"] < df["TARGET"])]
+        # st.write(oe)
+        if not oe.empty:
+            # Get the most recent event date
+            last_event_date = oe["DATE"].max()
+            # Calculate the number of days since the last event
+            last_event_date = datetime.strptime(last_event_date, "%Y-%m-%d")
+            today = datetime.today()
+            days_since_last_event = (today - last_event_date).days
+            st.write(f"Days since the last 'Recordable Loss Time Injury' event: {days_since_last_event}")
+        else:
+            st.write("No 'Recordable Loss Time Injury' events found in the database.")
+    
+
+    # tree = ET.parse("C:/Users/admin/Downloads/S.svg")
+    # root = tree.getroot()
+    # on_date = st.date_input(":green[Select Date:]")
+    # current_date = datetime.date.today()
+    # days_in_current_month = calendar.monthrange(current_year, current_month)[1]   #for check total days in current month
+    # total_days = (current_date.day)
+    # st.write(total_days)
+
+    # row_data = fetch_data("PRODUCTIVITY AND OEE")
+    # first_day_of_month = current_date.replace(day=1)
+    # days_to_add = 0
+    # for i in range(1, 32):
+    #     if i < 10:
+    #         target_element = root.find(f".//*[@id='untitled-u-day{i}']")
+    #     else:
+    #         target_element = root.find(f".//*[@id='untitled-u-day{i}_']")
+        # st.write(days_to_add)
+        # new_date = first_day_of_month + datetime.timedelta(days=days_to_add)
+        # days_to_add += 1
+        # df = row_data[row_data["DATE"] == f"{new_date}"]
+        # filter_data = df[df["CATEGORY"] == "HUMAN PRODUCTIVITY"]
+        # oe_target = filter_data["TARGET"]
+        # oe_actual = filter_data["ACTUAL"]
+        # comparison = np.where(oe_target > oe_actual, 'red', 'green')
+
+        # for result in comparison:
+        #     st.write(result)
+
+        # if new_date.weekday() == 6: color = "blue"
+        # else:
+        #     if oe_target > oe_actual: color = 'red'
+        #     elif oe_actual >= oe_target: color = 'green'
+        # if target_element is not None:
+        #     target_element.set('fill', 'gray')
+        # else:
+        #     print(f"Element not found for i={i}")
+        # if new_date.weekday() == 6: target_element.set('fill', "blue")
+        # else:
+        #     for result in comparison:
+                # st.write(result)
+                # color = result
+    #     target_element.set('fill', 'gray')
+    #     tree.write('output.svg')
+
+    # # Display the modified SVG using Streamlit
+    # with open('output.svg', 'r') as f:
+    #     svg = f.read()
+    #     b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+    #     html = r'<img src="data:image/svg+xml;base64,%s" style="height:15rem;"/>' % b64
+    #     st.write(f"""<div>{html}</div>""", unsafe_allow_html=True)
+
+
+    # on_date = st.date_input("select date")
+    # ppm_graph = fetch_data("PLANT PPM & SUPPLIER PPM")
+    # today_data = ppm_graph[ppm_graph["DATE"] == f"{on_date}"]
+    # for index, row in ppm_graph.iterrows():
+    #     if row["CATEGORY"] == "PLANT PPM":
+    #         plant_target = row["TARGET"]
+    #         plant_actual = row["ACTUAL"]
+    # color = 'red' if plant_target > plant_actual else 'green'
+    # today_data['DATE'] = pd.to_datetime(today_data['DATE'])
+    # # Format the 'DATE' column to display only the date portion
+    # today_data['DATE'] = today_data['DATE'].dt.strftime('%b %d')
+    # fig = px.bar(today_data, x='DATE', y=['ACTUAL', 'TARGET'])
+    # fig.update_layout(title='Plant Target vs. Plant Actual', xaxis_title='DATE', yaxis_title='VALUE')
+    # st.plotly_chart(fig)
+    # st.bar_chart(ppm_graph, x='DATE', y=['ACTUAL', 'TARGET'], color=['#a6f59a', '#f7a392'])
+    
+    # year = datetime.now().year
+    # strt_date = f"{year}-01-01"
+    # end_date = f"{year}-12-31"
+    # row_data = data_filter_between("INCIDENCES DETAILS", strt_date, end_date)
     # st.table(row_data)
         
     # bar_graph("SALE PLAN VS ACTUAL")
@@ -69,6 +340,15 @@ def main():
     # \sum_{k=0}^{n-1} ar^k =
     # a \left(\frac{1-r^{n}}{1-r}\right)
     # ''')
+
+    # # Sample list of suggestions
+    # suggestions = ["apple", "banana", "cherry", "grape", "kiwi", "orange", "pear", "pineapple", "strawberry"]
+    # # Get user input
+    # user_input = st.text_input("Enter a fruit:", "")
+    # # Filter suggestions based on the user's input
+    # filtered_suggestions = [suggestion for suggestion in suggestions if user_input.lower() in suggestion.lower()]
+    # # Display the filtered suggestions
+    # st.write("Suggestions:", filtered_suggestions)
 
     st.write("this is data")
     col1,col2,col3 = st.columns((1,1,3))
