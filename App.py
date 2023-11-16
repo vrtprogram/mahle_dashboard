@@ -202,7 +202,7 @@ def main():
         case "Visits/Audits":
             switch_page("Visits")
         case "Attendance Sheet":
-            switch_page("Unsafe Practice Tracking")
+            switch_page("Attendance")
 
     match qualitySelection:
         case "Quality FTD":
@@ -224,7 +224,7 @@ def main():
         case "":
             pass
         case "Problem Solving":
-            switch_page("problemSolving")
+            switch_page("Problem_Solving_Competency")
 
 
 main()
