@@ -1099,11 +1099,19 @@ def productivity_oee():
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -1204,11 +1212,19 @@ def productivity_oee():
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
     
@@ -1858,7 +1874,7 @@ def otif():
     today_date = datetime.datetime.now()
     current_week_number = today_date.strftime('%U')
     d1,d2,d3,d4 = st.columns((1,1,1,1))
-    with d1:
+    with d1:    # ****** Daily_Data ****** #
         # Filter the DataFrame for the desired month and week number
         desired_data = otif_month_data[otif_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "OE"]
@@ -1881,14 +1897,22 @@ def otif():
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
-    with d2:
+    with d2:    # ****** Daily_Data ****** #
         desired_data = otif_month_data[otif_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "OE_Spare"]
         daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
@@ -1910,14 +1934,22 @@ def otif():
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
-    with d3:
+    with d3:    # ****** Daily_Data ****** #
         desired_data = otif_month_data[otif_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "AfterMarket"]
         daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
@@ -1939,14 +1971,22 @@ def otif():
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
-    with d4:
+    with d4:    # ****** Daily_Data ****** #
         desired_data = otif_month_data[otif_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "Export"]
         daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
@@ -1968,17 +2008,25 @@ def otif():
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
 
     # st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
     m1,m2,m3,m4 = st.columns((1,1,1,1))
-    with m1:
+    with m1:    # ****** Weekly_Data ****** #
         # weekly_data = oe_data.groupby(oe_data['DATE'].dt.to_period('W'))[['TARGET', 'ACTUAL']].sum()
         # weekly_data.index = range(1, len(weekly_data) + 1)
         # st.bar_chart(weekly_data, color=["#fa2323","#5fe650"])
@@ -2012,7 +2060,7 @@ def otif():
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with m2:
+    with m2:    # ****** Weekly_Data ****** #
         # weekly_data = oe_spare_data.groupby(oe_spare_data['DATE'].dt.to_period('W'))[['TARGET', 'ACTUAL']].sum()
         # weekly_data.index = range(1, len(weekly_data) + 1)
         # st.bar_chart(weekly_data, color=["#fa2323","#5fe650"])
@@ -2046,7 +2094,7 @@ def otif():
         )
         st.plotly_chart(fig, use_container_width=True)
     
-    with m3:
+    with m3:    # ****** Weekly_Data ****** #
         # weekly_data = aftermarket_data.groupby(aftermarket_data['DATE'].dt.to_period('W'))[['TARGET', 'ACTUAL']].sum()
         # weekly_data.index = range(1, len(weekly_data) + 1)
         # st.bar_chart(weekly_data, color=["#fa2323","#5fe650"])
@@ -2080,7 +2128,7 @@ def otif():
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with m4:
+    with m4:    # ****** Weekly_Data ****** #
         # weekly_data = export_data.groupby(export_data['DATE'].dt.to_period('W'))[['TARGET', 'ACTUAL']].sum()
         # weekly_data.index = range(1, len(weekly_data) + 1)
         # st.bar_chart(weekly_data, color=["#fa2323","#5fe650"])
@@ -2115,7 +2163,7 @@ def otif():
     
     # st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Yearly Trend</center>""",unsafe_allow_html=True)
     y1,y2,y3,y4 = st.columns((1,1,1,1))
-    with y1:
+    with y1:    # ****** Monthly_Data ****** #
         # oe_data_month = d_data[d_data['CATEGORY'] == 'OE']
         # monthly_data = oe_data_month.groupby(oe_data_month['DATE'].dt.to_period('M'))[['TARGET', 'ACTUAL']].sum()
         # monthly_data.index = monthly_data.index.strftime('%b')
@@ -2147,7 +2195,7 @@ def otif():
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with y2:
+    with y2:    # ****** Monthly_Data ****** #
         # oe_spare_data_month = d_data[d_data['CATEGORY'] == 'OE_Spare']
         # monthly_data = oe_spare_data_month.groupby(oe_spare_data_month['DATE'].dt.to_period('M'))[['TARGET', 'ACTUAL']].sum()
         # monthly_data.index = monthly_data.index.strftime('%b')
@@ -2180,7 +2228,7 @@ def otif():
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with y3:
+    with y3:    # ****** Monthly_Data ****** #
         # aftermarket_data_month = d_data[d_data['CATEGORY'] == 'AfterMarket']
         # monthly_data = aftermarket_data_month.groupby(aftermarket_data_month['DATE'].dt.to_period('M'))[['TARGET', 'ACTUAL']].sum()
         # monthly_data.index = monthly_data.index.strftime('%b')
@@ -2213,7 +2261,7 @@ def otif():
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with y4:
+    with y4:    # ****** Monthly_Data ****** #
         # export_data_month = d_data[d_data['CATEGORY'] == 'Export']
         # monthly_data = export_data_month.groupby(export_data_month['DATE'].dt.to_period('M'))[['TARGET', 'ACTUAL']].sum()
         # monthly_data.index = monthly_data.index.strftime('%b')
@@ -2489,7 +2537,7 @@ def critcal_customer_pdi():
     today_date = datetime.datetime.now()
     current_week_number = today_date.strftime('%U')
     d1,d2,d3,d4 = st.columns((1,1,1,1))
-    with d1:
+    with d1:    # ****** Daily_Data ****** #
         # daily_data = msil_data.groupby(msil_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
         # daily_data.index = daily_data.index.strftime('%a') 
         # st.bar_chart(daily_data, color=["#fa2323","#5fe650"])
@@ -2516,15 +2564,23 @@ def critcal_customer_pdi():
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with d2:
+    with d2:    # ****** Daily_Data ****** #
         # daily_data = hd_data.groupby(hd_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
         # daily_data.index = daily_data.index.strftime('%a') 
         # st.bar_chart(daily_data, color=["#fa2323","#5fe650"])
@@ -2551,15 +2607,23 @@ def critcal_customer_pdi():
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with d3:
+    with d3:    # ****** Daily_Data ****** #
         # daily_data = honda.groupby(honda['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
         # daily_data.index = daily_data.index.strftime('%a') 
         # st.bar_chart(daily_data, color=["#fa2323","#5fe650"])
@@ -2586,15 +2650,23 @@ def critcal_customer_pdi():
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with d4:
+    with d4:    # ****** Daily_Data ****** #
         # daily_data = gm.groupby(gm['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
         # daily_data.index = daily_data.index.strftime('%a') 
         # st.bar_chart(daily_data, color=["#fa2323","#5fe650"])
@@ -2621,17 +2693,25 @@ def critcal_customer_pdi():
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
 
     # st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
     m1,m2,m3,m4 = st.columns((1,1,1,1))
-    with m1:
+    with m1:    # ****** Weekly_Data ****** #
         # weekly_data = msil_data.groupby(msil_data['DATE'].dt.to_period('W'))[['TARGET', 'ACTUAL']].sum()
         # weekly_data.index = range(1, len(weekly_data) + 1)
         # st.bar_chart(weekly_data, color=["#fa2323","#5fe650"])
@@ -2665,7 +2745,7 @@ def critcal_customer_pdi():
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with m2:
+    with m2:    # ****** Weekly_Data ****** #
         # weekly_data = hd_data.groupby(hd_data['DATE'].dt.to_period('W'))[['TARGET', 'ACTUAL']].sum()
         # weekly_data.index = range(1, len(weekly_data) + 1)
         # st.bar_chart(weekly_data, color=["#fa2323","#5fe650"])
@@ -2699,7 +2779,7 @@ def critcal_customer_pdi():
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with m3:
+    with m3:    # ****** Weekly_Data ****** #
         # weekly_data = honda.groupby(honda['DATE'].dt.to_period('W'))[['TARGET', 'ACTUAL']].sum()
         # weekly_data.index = range(1, len(weekly_data) + 1)
         # st.bar_chart(weekly_data, color=["#fa2323","#5fe650"])
@@ -2733,7 +2813,7 @@ def critcal_customer_pdi():
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with m4:
+    with m4:    # ****** Weekly_Data ****** #
         # weekly_data = gm.groupby(gm['DATE'].dt.to_period('W'))[['TARGET', 'ACTUAL']].sum()
         # weekly_data.index = range(1, len(weekly_data) + 1)
         # st.bar_chart(weekly_data, color=["#fa2323","#5fe650"])
@@ -2770,7 +2850,7 @@ def critcal_customer_pdi():
     
     # st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Yearly Trend</center>""",unsafe_allow_html=True)
     y1,y2,y3,y4 = st.columns((1,1,1,1))
-    with y1:
+    with y1:    # ****** Monthly_Data ****** #
         # msil_data_month = d_data[d_data['CATEGORY'] == 'MSIL']
         # monthly_data = msil_data_month.groupby(msil_data_month['DATE'].dt.to_period('M'))[['TARGET', 'ACTUAL']].sum()
         # monthly_data.index = monthly_data.index.strftime('%b')
@@ -2803,7 +2883,7 @@ def critcal_customer_pdi():
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with y2:
+    with y2:    # ****** Monthly_Data ****** #
         # hd_data_month = d_data[d_data['CATEGORY'] == 'HD']
         # monthly_data = hd_data_month.groupby(hd_data_month['DATE'].dt.to_period('M'))[['TARGET', 'ACTUAL']].sum()
         # monthly_data.index = monthly_data.index.strftime('%b')
@@ -2836,7 +2916,7 @@ def critcal_customer_pdi():
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with y3:
+    with y3:    # ****** Monthly_Data ****** #
         # honda_month = d_data[d_data['CATEGORY'] == 'Honda']
         # monthly_data = honda_month.groupby(honda_month['DATE'].dt.to_period('M'))[['TARGET', 'ACTUAL']].sum()
         # monthly_data.index = monthly_data.index.strftime('%b')
@@ -2869,7 +2949,7 @@ def critcal_customer_pdi():
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with y4:
+    with y4:    # ****** Monthly_Data ****** #
         # gm_month = d_data[d_data['CATEGORY'] == 'GM']
         # monthly_data = gm_month.groupby(gm_month['DATE'].dt.to_period('M'))[['TARGET', 'ACTUAL']].sum()
         # monthly_data.index = monthly_data.index.strftime('%b')
@@ -3448,11 +3528,19 @@ def plant_supplier_ppm():   # ******** Plant PPM & Supplier PPM ******** #
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -3544,11 +3632,19 @@ def plant_supplier_ppm():   # ******** Plant PPM & Supplier PPM ******** #
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
     
@@ -3794,11 +3890,19 @@ def ftp_rejection():    # ******** FTP And Reported Rejection ******** #
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
     with col2:  # ****** Weekly_Data ****** #
@@ -3883,11 +3987,19 @@ def ftp_rejection():    # ******** FTP And Reported Rejection ******** #
                 showarrow=False,
                 font=dict(color='black', size=15)
             )
+        if not daily_data['ACTUAL'].empty:
+            max_actual = daily_data['ACTUAL'].max()
+        else:
+            max_actual = 0
+        if not daily_data['TARGET'].empty:
+            max_target = daily_data['TARGET'].max()
+        else:
+            max_target = 0
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Actual',
             title="Daily Trend",
-            yaxis_range=[0, max(daily_data['ACTUAL'].max(), max(hp_data['TARGET']))]  # Set y-axis range
+            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
         )
         st.plotly_chart(fig, use_container_width=True)
     with col2:  # ****** Weekly_Data ****** #
@@ -4484,7 +4596,6 @@ def personal_gap():
         fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Months', yaxis_title='Personal Gap')
         # Display the chart in Streamlit
         st.plotly_chart(fig)
-
 
 def visits():
     visit = fetch_month_data("VISITS OR AUDITS")
