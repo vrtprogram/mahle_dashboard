@@ -17,7 +17,7 @@ on_date = "%y-%m-%d"    #Date define for all pages
 tm = "%H-%M-%S"
 
 def  layout(heading):
-    st.set_page_config(layout="wide", page_title="Safety FTD", initial_sidebar_state="collapsed")
+    st.set_page_config(layout="wide", page_title="Mahle Dashboard", initial_sidebar_state="collapsed")
     st.markdown("""<style>.block-container { padding: 0.5rem; }</style>""", unsafe_allow_html=True)
     hide_streamlit_style = """<style>#MainMenu { visibility: hidden;}footer { visibility: hidden;}</style>"""
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -979,7 +979,6 @@ def cost_ftd():
 
 def productivity_oee():
     current_date()
-
     oee_data = fetch_month_data("PRODUCTIVITY AND OEE")
     hp_month_actual = oee_data[(oee_data["CATEGORY"] == "HUMAN PRODUCTIVITY")]["ACTUAL"].sum()
     hp_month_target = oee_data[(oee_data["CATEGORY"] == "HUMAN PRODUCTIVITY")]["TARGET"].sum()
@@ -4677,4 +4676,318 @@ def visits():
         """, unsafe_allow_html=True)
     pass
 
+def attendance_sheet():
+    st.markdown(f"""
+        <style>
+            th {{
+                background-color: #001f3f;  color: #fff;  padding: 0.5em 1em;
+            }}
+            td {{
+                border-top: 1px solid black;    padding: 0.5em 1em;
+            }}
+            input {{
+                cursor: pointer;
+            }}
+            /* Column types */
+            th.missed-col {{
+                background-color: #f00;
+            }}
+            td.missed-col {{
+                background-color: #ffecec;  color: #f00;  text-align: center;
+            }}
+            .name-col {{
+                text-align: left;
+            }}
+        </style>
+        <table>
+            <thead>
+                <tr>
+                <th class="name-col">Employee Name</th>
+                <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th>
+                <th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th>
+                <th>21</th><th>22</th><th>23</th><th>24</th><th>25</th><th>26</th><th>27</th><th>28</th><th>29</th><th>30</th><th>31</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="student">
+                    <td class="name-col">Slappy the Frog</td>
+                    <td class="attend-col" style="background-color:red;">A</td> <td class="attend-col" style="background-color:yellow;">L</td>
+                    <td class="attend-col" style="background-color:green;">P</td> <td class="attend-col" style="background-color:blue;">H</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                </tr>
+                <tr class="student">
+                    <td class="name-col">Lilly the Lizard</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                </tr>
+                <tr class="student">
+                    <td class="name-col">Paulrus the Walrus</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                </tr>
+                <tr class="student">
+                    <td class="name-col">Gregory the Goat</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                </tr>
+                <tr class="student">
+                    <td class="name-col">Adam the Anaconda</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                </tr>
+                <tr class="student">
+                    <td class="name-col">Slappy the Frog</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                </tr>
+                <tr class="student">
+                    <td class="name-col">Lilly the Lizard</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                </tr>
+                <tr class="student">
+                    <td class="name-col">Paulrus the Walrus</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                </tr>
+                <tr class="student">
+                    <td class="name-col">Gregory the Goat</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                </tr>
+                <tr class="student">
+                    <td class="name-col">Adam the Anaconda</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                    <td class="attend-col">P</td> <td class="attend-col">P</td> <td class="attend-col">P</td>
+                </tr>
+            </tbody>
+        </table>
+    """, unsafe_allow_html=True)
+    pass
 #************************** Personal End **************************#
+
+#************************** PSP Start **************************#
+def psp_competency():
+    df = fetch_data("PROBLEM SOLVING COMPETENCY")
+    current_month = pd.Timestamp('now').to_period('M')
+    current_month_data = fetch_month_data("PROBLEM SOLVING COMPETENCY")
+    today_date = datetime.datetime.now()
+    current_week_number = today_date.strftime('%U')
+    desired_data = current_month_data[current_month_data['DATE'].dt.strftime('%U') == current_week_number]
+    my_data = []
+    data1 = []
+    data2 = []
+    data_length = len(desired_data)
+    max_data = 6
+    for index, row in desired_data.iterrows():
+        if row['DATE'].weekday() == 6:
+            # print("This is Sunday!")
+            pass
+        else:
+            psc = {
+                "problem_raised": row["PROBLEM RAISED"],
+                "problem_solved": row["PROBLEM SOLVED"],
+                "problem_wip":    row["PROBLEM WIP"],
+                "psp_competency": row["PSP COMPETENCY"]
+            }
+            my_data.append(psc)
+            data1.append(row['PSP COMPETENCY'])
+            pass
+        pass
+    while data_length < max_data:
+        dummy_psc = {
+            "problem_raised": "N/A",
+            "problem_solved": "N/A",
+            "problem_wip": "N/A",
+            "psp_competency": "N/A"
+        }
+        my_data.append(dummy_psc)
+    st.markdown(f"""
+        <style>
+            .category{{border:1px solid black; width:12%; padding-top:1rem; float:left; height: 3rem; text-align:center; font-weight:bold;}}
+            .content{{border:1px solid black; width:12%; padding-top:1rem; float:left; height: 3rem; text-align:center;}}
+            .main_category{{border:1px solid black; width:28%; padding-top:1rem; float:left; height: 3rem; text-align:center; font-weight:bold;}}
+        </style>
+        <div>
+            <div class="main_category">Days in Week</div>
+            <div class="category">Monday</div>
+            <div class="category">Tuesday</div>
+            <div class="category">Wednesday</div>
+            <div class="category">Thursday</div>
+            <div class="category">Friday</div>
+            <div class="category">Saturday</div>
+        </div>
+        <div>
+            <div class="main_category">Problem Raised (A)</div>
+            <div class="content">{my_data[0]["problem_raised"]}</div>
+            <div class="content">{my_data[1]["problem_raised"]}</div>
+            <div class="content">{my_data[2]["problem_raised"]}</div>
+            <div class="content">{my_data[3]["problem_raised"]}</div>
+            <div class="content">{my_data[4]["problem_raised"]}</div>
+            <div class="content">{my_data[5]["problem_raised"]}</div>
+        </div>
+        <div>
+            <div class="main_category">Problem Solved (B)</div>
+            <div class="content">{my_data[0]["problem_solved"]}</div>
+            <div class="content">{my_data[1]["problem_solved"]}</div>
+            <div class="content">{my_data[2]["problem_solved"]}</div>
+            <div class="content">{my_data[3]["problem_solved"]}</div>
+            <div class="content">{my_data[4]["problem_solved"]}</div>
+            <div class="content">{my_data[5]["problem_solved"]}</div>
+        </div>
+        <div>
+            <div class="main_category">Problem WIP</div>
+            <div class="content">{my_data[0]["problem_wip"]}</div>
+            <div class="content">{my_data[1]["problem_wip"]}</div>
+            <div class="content">{my_data[2]["problem_wip"]}</div>
+            <div class="content">{my_data[3]["problem_wip"]}</div>
+            <div class="content">{my_data[4]["problem_wip"]}</div>
+            <div class="content">{my_data[5]["problem_wip"]}</div>
+        </div>
+        <div>
+            <div class="main_category">PSP Competency %</div>
+            <div class="content">{my_data[0]["psp_competency"]}%</div>
+            <div class="content">{my_data[1]["psp_competency"]}%</div>
+            <div class="content">{my_data[2]["psp_competency"]}%</div>
+            <div class="content">{my_data[3]["psp_competency"]}%</div>
+            <div class="content">{my_data[4]["psp_competency"]}%</div>
+            <div class="content">{my_data[5]["psp_competency"]}%</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    psc_target = fetch_data("SET DAILY TARGET")
+    psc_target = psc_target[psc_target["CATEGORY"] == "Problem Solving Competency %"]
+    monthly_target = psc_target[((psc_target["DATE"].dt.to_period('M')) == current_month)]
+
+    cl1,cl2,cl3 = st.columns((1,1,1))
+    with cl1:   # ****** Daily_Data ****** #
+        st.markdown("")
+        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.7rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
+        merged_data = pd.merge(desired_data, monthly_target, on='DATE', how='outer')
+        # Add a column for comparison
+        merged_data['color'] = ["#fa2323" if x >= y else "#5fe650" for x, y in zip(merged_data['PSP COMPETENCY'], merged_data['VALUE'])]
+        daily_data = desired_data.groupby(desired_data['DATE'].dt.to_period('D')).size()
+        daily_data.index = daily_data.index.strftime('%b %d')
+        daily_color = []
+        for i in daily_data.index:
+            # print(i)
+            # Format the date in the same way as the monthly_target data for comparison
+            formatted_date = datetime.datetime.strptime(i, '%b %d').strftime('%b %d')
+            # Find the corresponding row in monthly_target with the same formatted date
+            matching_target = monthly_target[monthly_target['DATE'].dt.strftime('%b %d') == formatted_date]
+            if not matching_target.empty:
+                target_value = matching_target["VALUE"].values[0]
+                # print(daily_data[i], target_value)
+                if daily_data[i] < target_value:
+                    daily_color.append("#fa2323")  # Complaints exceed target
+                else:
+                    daily_color.append("#5fe650")  # Complaints meet or are below target
+            else:
+                daily_color.append("#5fe650")
+                
+        fig = go.Figure(data=[go.Bar(x=daily_data.index, y=desired_data['PSP COMPETENCY'], marker_color=daily_color)])
+        # Customize the chart layout
+        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Days', yaxis_title='PSP Competency %')
+        # Display the chart in Streamlit
+        st.plotly_chart(fig)
+        # st.bar_chart(daily_data, color=daily_color, height=387)
+    with cl2:   # ****** Weekly_Data ****** #
+        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
+        weekly_data = current_month_data.groupby(current_month_data['DATE'].dt.to_period('W')).size()
+        weekly_target = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
+        weekly_data.index = range(1, len(weekly_data) + 1)
+        weekly_color = []
+        for i in weekly_data.index:
+            target_value = weekly_target.get(i, 0)
+            data_value = weekly_data.get(i, 0)
+            if data_value < target_value:
+                weekly_color.append("#fa2323")  # Data exceed target
+            else:
+                weekly_color.append("#5fe650")  # Data meet or are below target
+        fig = go.Figure(data=[go.Bar(x=weekly_data.index, y=weekly_data, marker_color=weekly_color)])
+        # Customize the chart layout
+        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Weeks', yaxis_title='Complaints')
+        # Display the chart in Streamlit
+        st.plotly_chart(fig)
+    with cl3:   # ****** Monthly_Data ****** #
+        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Monthly Trend</center>""",unsafe_allow_html=True)
+        monthly_data = df.groupby(df['DATE'].dt.to_period('M')).size()
+        monthly_target = psc_target.groupby(psc_target['DATE'].dt.to_period('M'))['VALUE'].sum()
+        monthly_data.index = monthly_data.index.strftime('%b')
+        monthly_color = []
+        for i in monthly_data.index:
+            target_value = monthly_target.get(i, 0)
+            data_value = monthly_data.get(i, 0)
+            if data_value < target_value:
+                monthly_color.append("#fa2323")  # Data exceed target
+            else:
+                monthly_color.append("#5fe650")  # Data meet or are below target
+        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=monthly_data, marker_color=monthly_color)])
+        # Customize the chart layout
+        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Months', yaxis_title='Complaints')
+        # Display the chart in Streamlit
+        st.plotly_chart(fig)
+        # st.bar_chart(monthly_data, color="#ff0000", height=363)
+    pass
+
+#************************** PSP End **************************#

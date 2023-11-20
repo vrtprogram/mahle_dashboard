@@ -57,7 +57,7 @@ if authentication_status:
         authenticator.logout("Logout")
     st.write("<H1>Select From Below Options To Enter Data", unsafe_allow_html=True)
 
-    options = ['', 'Safety', 'Quality', 'Delivery', 'Cost', 'Personal', 'Set_Daily_Target' ]
+    options = ['', 'Safety', 'Quality', 'Delivery', 'Cost', 'Personal', 'PSP', 'Set_Daily_Target' ]
 
     selected = st.selectbox('Menu', options=options)
     # -------Data Entry Pages --------------------------------#
@@ -178,6 +178,169 @@ if authentication_status:
                 # ACTIONS ACCORDING TO OPTIONS
                 if selected == 'LOG':
                     with st.form("Personal Data", clear_on_submit=False):
+                        date = st.date_input("Date")
+                        col1, col2, col3 = st.columns((1, 1, 1), gap="small")
+                        with col1:
+                            emp_name = st.text_input("Employee Name")
+                        with col2:
+                            emp_id = st.text_input("Employee ID")
+                        with col3:
+                            time = st.time_input("Time")
+
+                        summited = st.form_submit_button('Save')
+                        if summited:
+                                # LOGING ALL DATA INTO THE DATA BASE
+                                cur.execute(
+                                    f'INSERT INTO ATTENDANCE VALUES ("{datetime.now()}","{date}","{emp_name}", "{emp_id}","{time}")')
+                                conn.commit()
+                                st.success("Data Saved")
+
+                if selected == 'UPDATE':
+                    # st.write("Updating Personal")
+                    date = st.date_input("Select date to update the status")
+
+                    if date is not None:
+                        st.write(f"The Selected date is {date}")
+                        df = pd.read_sql_query(f'Select * from ATTENDANCE where date = "{date}"', conn)
+                        edited_df = st.data_editor(df, width=1600)
+                        # print(edited_df)
+                        update = st.button("Data Update")
+                        if update:
+                            try:
+                                for _, row in edited_df.iterrows():
+                                    cur.execute(
+                                        f'UPDATE ATTENDANCE SET "EMPLOYEE NAME" = "{row["EMPLOYEE NAME"]}","EMPLOYEE ID" = "{row["EMPLOYEE ID"]}","IN TIME"= "{row["IN TIME"]}"  WHERE TIME_STAMP = "{row["TIME_STAMP"]}" ')
+                                    conn.commit()
+                                st.success("Data Updated")
+                            except Exception as e:
+                                st.warning(e)
+                        time_stamp = st.text_input("Enter The Time Stamp To Delete")
+                        button = st.button("Delete Entry")
+                        if button:
+                            cur.execute(f"DELETE FROM ATTENDANCE WHERE Time_Stamp = '{time_stamp}'")
+                            conn.commit()
+                            st.success("Success ")
+                            st.rerun()
+
+    # **************** Personal **************************#
+    if selected == 'PSP':
+        c_opt = ['', 'Problem Solving Competency', 'Layer Audit Action Points', 'Layered Process Audit Details']
+        slct = st.selectbox('PSP', options=c_opt)
+        if slct == 'Problem Solving Competency':
+            with sqlite3.connect('database/main_database.db') as conn:
+                cur = conn.cursor()
+                # PROVIDING OPTIONS
+                option = ["", "UPDATE", 'LOG']
+                selected = st.selectbox("Select Action To Perform", options=option, index=0)
+                # ACTIONS ACCORDING TO OPTIONS
+                if selected == 'LOG':
+                    with st.form("PSP Data", clear_on_submit=False):
+                        cur.execute('SELECT * FROM "PROBLEM SOLVING COMPETENCY" ORDER BY DATE DESC LIMIT 1')
+                        row = cur.fetchone()
+                        previus_value = row[4]
+                        # print(row[4])
+                        date = st.date_input("Date")
+                        col1, col2 = st.columns((1, 1), gap="small")
+                        with col1:
+                            today_value = st.number_input('Problem Raised', format='%d', step=1, min_value=0)
+                            problem_raised = today_value + previus_value
+                        with col2:
+                            proble_solved = st.number_input("Problem Solved", format='%d', step=1, min_value=0)
+
+                        summited = st.form_submit_button('Save')
+                        if summited:
+                            # LOGING ALL DATA INTO THE DATA BASE
+                            cur.execute(
+                                f'INSERT INTO "PROBLEM SOLVING COMPETENCY" (TIME_STAMP, DATE, "PROBLEM RAISED", "PROBLEM SOLVED") VALUES ("{datetime.now()}","{date}",{problem_raised}, {proble_solved})')
+                            conn.commit()
+                            st.success("Data Saved")
+
+                if selected == 'UPDATE':
+                    # st.write("Updating Personal")
+                    date = st.date_input("Select date to update the status")
+                    if date is not None:
+                        st.write(f"The Selected date is {date}")
+                        df = pd.read_sql_query(f'Select * from "PROBLEM SOLVING COMPETENCY"  where date = "{date}"', conn)
+                        edited_df = st.data_editor(df, width=1600)
+                        # print(edited_df)
+                        update = st.button("Data Update")
+                        if update:
+                            try:
+                                for _, row in edited_df.iterrows():
+                                    cur.execute(
+                                        f'UPDATE "PROBLEM SOLVING COMPETENCY"  SET "PROBLEM RAISED" = "{row["PROBLEM RAISED"]}","PROBLEM SOLVED" = "{row["PROBLEM SOLVED"]}","PROBLEM WIP"= "{row["PROBLEM WIP"]}","PSP COMPETENCY"= "{row["PSP COMPETENCY"]}"  WHERE TIME_STAMP = "{row["TIME_STAMP"]}" ')
+                                    conn.commit()
+                                st.success("Data Updated")
+                            except Exception as e:
+                                st.warning(e)
+                        time_stamp = st.text_input("Enter The Time Stamp To Delete")
+                        button = st.button("Delete Entry")
+                        if button:
+                            cur.execute(f"DELETE FROM 'PROBLEM SOLVING COMPETENCY'  WHERE Time_Stamp = '{time_stamp}'")
+                            conn.commit()
+                            st.success("Success ")
+                            st.rerun()
+        if slct == 'Layer Audit Action Points':
+            with sqlite3.connect('database/main_database.db') as conn:
+                cur = conn.cursor()
+                # PROVIDING OPTIONS
+                option = ["", "UPDATE", 'LOG']
+                selected = st.selectbox("Select Action To Perform", options=option, index=0)
+                # ACTIONS ACCORDING TO OPTIONS
+                if selected == 'LOG':
+                    with st.form("PSP Data", clear_on_submit=False):
+                        date = st.date_input("Date")
+                        col1, col2, col3= st.columns((1, 1, 1), gap="small")
+                        with col1:
+                            purpose = st.text_input("Purpose of visit")
+                        with col2:
+                            visit_by = st.text_input("Visit/Audit by")
+                        with col3:
+                            responsible = st.text_input("Responsibility")
+
+                        summited = st.form_submit_button('Save')
+                        if summited:
+                                # LOGING ALL DATA INTO THE DATA BASE
+                                cur.execute(
+                                    f'INSERT INTO "VISITS OR AUDITS" VALUES ("{datetime.now()}","{date}","{purpose}", "{visit_by}","{responsible}")')
+                                conn.commit()
+                                st.success("Data Saved")
+
+                if selected == 'UPDATE':
+                    # st.write("Updating Personal")
+                    date = st.date_input("Select date to update the status")
+
+                    if date is not None:
+                        st.write(f"The Selected date is {date}")
+                        df = pd.read_sql_query(f'Select * from "VISITS OR AUDITS" where date = "{date}"', conn)
+                        edited_df = st.data_editor(df, width=1600)
+                        # print(edited_df)
+                        update = st.button("Data Update")
+                        if update:
+                            try:
+                                for _, row in edited_df.iterrows():
+                                    cur.execute(
+                                        f'UPDATE "VISITS OR AUDITS" SET PURPOSE = "{row["PURPOSE"]}","VISITED BY" = "{row["VISITED BY"]}",RESPONSIBILITY= "{row["RESPONSIBILITY"]}"  WHERE TIME_STAMP = "{row["TIME_STAMP"]}" ')
+                                    conn.commit()
+                                st.success("Data Updated")
+                            except Exception as e:
+                                st.warning(e)
+                        time_stamp = st.text_input("Enter The Time Stamp To Delete")
+                        button = st.button("Delete Entry")
+                        if button:
+                            cur.execute(f"DELETE FROM 'VISITS OR AUDITS' WHERE Time_Stamp = '{time_stamp}'")
+                            conn.commit()
+                            st.success("Success ")
+                            st.rerun()
+        if slct == 'Layered Process Audit Details':
+            with sqlite3.connect('database/main_database.db') as conn:
+                cur = conn.cursor()
+                # PROVIDING OPTIONS
+                option = ["", "UPDATE", 'LOG']
+                selected = st.selectbox("Select Action To Perform", options=option, index=0)
+                # ACTIONS ACCORDING TO OPTIONS
+                if selected == 'LOG':
+                    with st.form("PSP Data", clear_on_submit=False):
                         date = st.date_input("Date")
                         col1, col2, col3 = st.columns((1, 1, 1), gap="small")
                         with col1:
@@ -1026,7 +1189,7 @@ if authentication_status:
                     date = st.date_input("Date")
                     col1, col2= st.columns((1, 1))
                     with col1:
-                        category = st.selectbox("Category", options=['','Incident details', 'Incident Practices', 'Customer Complaint', 'Machine Breakdown Time', 'Personal Gap'])
+                        category = st.selectbox("Category", options=['','Incident details', 'Incident Practices', 'Customer Complaint', 'Machine Breakdown Time', 'Personal Gap', 'Problem Solving Competency %'])
                     with col2:
                         target = st.number_input("Target")
                     submit = st.form_submit_button("Save")

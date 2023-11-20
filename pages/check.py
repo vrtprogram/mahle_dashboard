@@ -17,6 +17,29 @@ layout("this page only for testing")
 
 def main():
 
+    data_table1 = {'date': ['2023-11-01', '2023-11-02', '2023-11-03', '2023-11-04', '2023-11-05', '2023-11-06', '2023-11-07'],
+               'value': [10, 20, 15, 25, 30, 18, 22]}
+
+    data_table2 = {'date': ['2023-11-01', '2023-11-02', '2023-11-03', '2023-11-04', '2023-11-05', '2023-11-06', '2023-11-07'],
+                'value': [10, 21, 15, 25, 30, 19, 22]}
+
+    table1 = pd.DataFrame(data_table1)
+    table2 = pd.DataFrame(data_table2)
+
+    # Merge the tables on the 'date' column
+    merged_data = pd.merge(table1, table2, on='date', suffixes=('_table1', '_table2'))
+
+    # Add a column for comparison
+    merged_data['comparison_result'] = ['Match' if x == y else 'Mismatch' for x, y in zip(merged_data['value_table1'], merged_data['value_table2'])]
+
+    # Streamlit app
+    st.title('Data Comparison')
+
+    # Display the merged data
+    st.write('Merged Data:')
+    st.write(merged_data)
+
+
     # Initialize messages list in session_state
     # if "messages" not in st.session_state:
     #     st.session_state.messages = []
@@ -71,6 +94,9 @@ def main():
     df = fetch_data("PERSONAL GAP")
     df['DATE'] = pd.to_datetime(df['DATE'])
     current_month = pd.Timestamp('now').to_period('M')
+    df = df.iloc[-1]
+    a = 3
+    st.write(a+df['ACTUAL MANPOWER'])
     pg_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
     pg_target = fetch_data("SET DAILY TARGET")
     pg_target = pg_target[pg_target["CATEGORY"] == 'Personal Gap']
