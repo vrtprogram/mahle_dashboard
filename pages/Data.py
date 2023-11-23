@@ -185,7 +185,7 @@ if authentication_status:
                         with col2:
                             emp_id = st.text_input("Employee ID")
                         with col3:
-                            time = st.time_input("Time")
+                            time = st.time_input("Time", value=None, step=60)
 
                         summited = st.form_submit_button('Save')
                         if summited:

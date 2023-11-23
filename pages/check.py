@@ -1,5 +1,5 @@
 import streamlit as st
-from methods.main import layout, fetch_data, data_filter_between
+from methods.main import layout, fetch_data, data_filter_between,fetch_month_data
 from datetime import date
 from datetime import datetime as dt
 from datetime import datetime, timedelta
@@ -16,28 +16,101 @@ import time
 layout("this page only for testing")
 
 def main():
+    df = fetch_data("INCIDENCES DETAILS")
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    current_month = pd.Timestamp('now').to_period('M')
+    month_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
+    target_data = fetch_data("SET DAILY TARGET")
+    target_data = target_data[target_data["CATEGORY"] == 'Incident details']  #filter data acording category
+    monthly_target = target_data[((target_data["DATE"].dt.to_period("M")) == current_month)]
+    st.subheader("FTP Trend")
+    today_date = datetime.now()
+    current_week_number = today_date.strftime('%U') #check current week number
+    cl1,cl2,cl3 = st.columns((1,1,1))
+    with cl1:   # ****** Daily_Data ****** #
+        desired_data = month_data[month_data['DATE'].dt.strftime('%U') == current_week_number]
+        daily_data = desired_data.groupby(desired_data['DATE'].dt.to_period('D')).size()
+        desired_data['Day'] = desired_data['DATE'].dt.strftime('%a')    #Day format in weekdays
+        desired_trgt = monthly_target[monthly_target['DATE'].dt.strftime('%U') == current_week_number] #Target data of current week
+        st.write(daily_data)
+        desired_trgt['DATE'] = desired_trgt['DATE'].dt.strftime("%Y-%m-%d")
+        daily_data = pd.DataFrame({'data':daily_data})
+        st.write(daily_data, desired_trgt)
+        merged_data = pd.merge(daily_data, desired_trgt, on='DATE')   #Merge actual and target data in single table
+        st.write(merged_data)
+        merged_data['color'] = np.where(merged_data['PSP COMPETENCY'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        # st.write(merged_data)
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(merged_data['Day'], merged_data['PSP COMPETENCY'], merged_data['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='BD Time', line=dict(color=my_color, width=30), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=merged_data['Day'], y=merged_data['VALUE'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Actual')
+        st.plotly_chart(fig, use_container_width=True)
+    with cl2:   # ****** Weekly_Data ****** #
+        P_raised = month_data.groupby(month_data['DATE'].dt.to_period('W'))['PROBLEM RAISED'].sum()
+        P_solved = month_data.groupby(month_data['DATE'].dt.to_period('W'))['PROBLEM SOLVED'].sum()
+        weekly_trgt = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum() / 6
+        weekly_data = round((P_solved / P_raised) * 100, 2)
+        weekly_data = pd.DataFrame({'psp_data': weekly_data})
+        merged_data = pd.merge(weekly_data, weekly_trgt, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['psp_data'] < merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        weekly_data.index = weekly_data.index.astype(str)
+        weekly_data['WEEKLY_NUMBER'] = range(1, len(weekly_data) +1)
+        fig = go.Figure(data=[
+            go.Bar(
+                x=list(weekly_data['WEEKLY_NUMBER']),  # Convert range to list
+                y=merged_data['psp_data'],
+                marker_color=[color for color in merged_data['color']],
+            ),
+        ])
+        fig.update_layout(
+            xaxis_title='Week',
+            yaxis_title='Total Actual',
+            title="Weekly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    with cl3:   # ****** Monthly_Data ****** #
+        P_raised = df.groupby(df['DATE'].dt.to_period('M'))['PROBLEM RAISED'].sum()
+        P_solved = df.groupby(df['DATE'].dt.to_period('M'))['PROBLEM SOLVED'].sum()
+        monthly_target = monthly_target.groupby(monthly_target['DATE'].dt.to_period('M'))['VALUE'].sum() / 30
+        monthly_data = round((P_solved / P_raised) * 100, 2)
+        monthly_data = pd.DataFrame({'psp_data': monthly_data})
+        merged_data = pd.merge(monthly_data, monthly_target, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['psp_data'] < merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        monthly_data.index = monthly_data.index.strftime('%b')
+        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=merged_data['psp_data'], marker_color=[color for color in merged_data['color']],)])
+        # Customize the chart layout
+        fig.update_layout(
+            xaxis_title='Month',
+            yaxis_title='Total Actual',
+            title="Monthly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        pass
+    # data_table1 = {'date': ['2023-11-01', '2023-11-02', '2023-11-03', '2023-11-04', '2023-11-05', '2023-11-06', '2023-11-07'],
+    #            'value': [10, 20, 15, 25, 30, 18, 22]}
 
-    data_table1 = {'date': ['2023-11-01', '2023-11-02', '2023-11-03', '2023-11-04', '2023-11-05', '2023-11-06', '2023-11-07'],
-               'value': [10, 20, 15, 25, 30, 18, 22]}
+    # data_table2 = {'date': ['2023-11-01', '2023-11-02', '2023-11-03', '2023-11-04', '2023-11-05', '2023-11-06', '2023-11-07'],
+    #             'value': [10, 21, 15, 25, 30, 19, 22]}
 
-    data_table2 = {'date': ['2023-11-01', '2023-11-02', '2023-11-03', '2023-11-04', '2023-11-05', '2023-11-06', '2023-11-07'],
-                'value': [10, 21, 15, 25, 30, 19, 22]}
+    # table1 = pd.DataFrame(data_table1)
+    # table2 = pd.DataFrame(data_table2)
 
-    table1 = pd.DataFrame(data_table1)
-    table2 = pd.DataFrame(data_table2)
+    # # Merge the tables on the 'date' column
+    # merged_data = pd.merge(table1, table2, on='date', suffixes=('_table1', '_table2'))
 
-    # Merge the tables on the 'date' column
-    merged_data = pd.merge(table1, table2, on='date', suffixes=('_table1', '_table2'))
+    # # Add a column for comparison
+    # merged_data['comparison_result'] = ['Match' if x == y else 'Mismatch' for x, y in zip(merged_data['value_table1'], merged_data['value_table2'])]
 
-    # Add a column for comparison
-    merged_data['comparison_result'] = ['Match' if x == y else 'Mismatch' for x, y in zip(merged_data['value_table1'], merged_data['value_table2'])]
+    # # Streamlit app
+    # st.title('Data Comparison')
 
-    # Streamlit app
-    st.title('Data Comparison')
-
-    # Display the merged data
-    st.write('Merged Data:')
-    st.write(merged_data)
+    # # Display the merged data
+    # st.write('Merged Data:')
+    # st.write(merged_data)
 
 
     # Initialize messages list in session_state
@@ -91,88 +164,88 @@ def main():
     #     st.balloons()
 
 
-    df = fetch_data("PERSONAL GAP")
-    df['DATE'] = pd.to_datetime(df['DATE'])
-    current_month = pd.Timestamp('now').to_period('M')
-    df = df.iloc[-1]
-    a = 3
-    st.write(a+df['ACTUAL MANPOWER'])
-    pg_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
-    pg_target = fetch_data("SET DAILY TARGET")
-    pg_target = pg_target[pg_target["CATEGORY"] == 'Personal Gap']
-    monthly_target = pg_target[((pg_target["DATE"].dt.to_period("M")) == current_month)]
-    today_date = datetime.now()
-    current_week_number = today_date.strftime('%U')
-    cl1,cl2,cl3 = st.columns((1,1,1))
-    with cl1:   # ****** Daily_Data ****** #
-        st.markdown("")
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.7rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
-        desired_data = pg_data[pg_data['DATE'].dt.strftime('%U') == current_week_number]
-        daily_data = desired_data.groupby(desired_data['DATE'].dt.to_period('D'))['PERSONAL GAP'].sum()
-        daily_data.index = daily_data.index.strftime('%b %d')
-        daily_color = []
-        for i in daily_data.index:
-            # Format the date in the same way as the monthly_target data for comparison
-            formatted_date = datetime.strptime(i, '%b %d').strftime('%b %d')
-            # Find the corresponding row in monthly_target with the same formatted date
-            matching_target = monthly_target[monthly_target['DATE'].dt.strftime('%b %d') == formatted_date]
+    # df = fetch_data("PERSONAL GAP")
+    # df['DATE'] = pd.to_datetime(df['DATE'])
+    # current_month = pd.Timestamp('now').to_period('M')
+    # df = df.iloc[-1]
+    # a = 3
+    # st.write(a+df['ACTUAL MANPOWER'])
+    # pg_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
+    # pg_target = fetch_data("SET DAILY TARGET")
+    # pg_target = pg_target[pg_target["CATEGORY"] == 'Personal Gap']
+    # monthly_target = pg_target[((pg_target["DATE"].dt.to_period("M")) == current_month)]
+    # today_date = datetime.now()
+    # current_week_number = today_date.strftime('%U')
+    # cl1,cl2,cl3 = st.columns((1,1,1))
+    # with cl1:   # ****** Daily_Data ****** #
+    #     st.markdown("")
+    #     st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.7rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
+    #     desired_data = pg_data[pg_data['DATE'].dt.strftime('%U') == current_week_number]
+    #     daily_data = desired_data.groupby(desired_data['DATE'].dt.to_period('D'))['PERSONAL GAP'].sum()
+    #     daily_data.index = daily_data.index.strftime('%b %d')
+    #     daily_color = []
+    #     for i in daily_data.index:
+    #         # Format the date in the same way as the monthly_target data for comparison
+    #         formatted_date = datetime.strptime(i, '%b %d').strftime('%b %d')
+    #         # Find the corresponding row in monthly_target with the same formatted date
+    #         matching_target = monthly_target[monthly_target['DATE'].dt.strftime('%b %d') == formatted_date]
             
-            if not matching_target.empty:
-                target_value = matching_target["VALUE"].values[0]
-                # print(daily_data[i], target_value)
-                if daily_data[i] > target_value:
-                    daily_color.append("#fa2323")  # Complaints exceed target
-                else:
-                    daily_color.append("#5fe650")  # Complaints meet or are below target
-            else:
-                daily_color.append("#5fe650")
+    #         if not matching_target.empty:
+    #             target_value = matching_target["VALUE"].values[0]
+    #             # print(daily_data[i], target_value)
+    #             if daily_data[i] > target_value:
+    #                 daily_color.append("#fa2323")  # Complaints exceed target
+    #             else:
+    #                 daily_color.append("#5fe650")  # Complaints meet or are below target
+    #         else:
+    #             daily_color.append("#5fe650")
                 
-        fig = go.Figure(data=[go.Bar(x=daily_data.index, y=daily_data, marker_color=daily_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Days', yaxis_title='Personal Gap')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
+    #     fig = go.Figure(data=[go.Bar(x=daily_data.index, y=daily_data, marker_color=daily_color)])
+    #     # Customize the chart layout
+    #     fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Days', yaxis_title='Personal Gap')
+    #     # Display the chart in Streamlit
+    #     st.plotly_chart(fig)
 
-    with cl2:   # ****** Weekly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
-        weekly_data = pg_data.groupby(pg_data['DATE'].dt.to_period('W'))[['ACTUAL MANPOWER', 'PLANNED MANPOWER']].sum()
-        weekly_data['NEW_PG'] = round(((weekly_data['PLANNED MANPOWER'] - weekly_data['ACTUAL MANPOWER'])/weekly_data['PLANNED MANPOWER'])*100, 2)
-        # st.write(weekly_data['NEW_PG'])
-        weekly_target = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
-        weekly_data.index = range(1, len(weekly_data) + 1)
-        weekly_color = []
-        for i in weekly_data.index:
-            target_value = weekly_target.get(i, 0)
-            data_value = weekly_data.loc[i, 'NEW_PG']
-            if data_value > target_value:
-                weekly_color.append("#fa2323")  # Data exceed target
-            else:
-                weekly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=weekly_data.index, y=weekly_data['NEW_PG'], marker_color=weekly_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Weeks', yaxis_title='Personal Gap')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
+    # with cl2:   # ****** Weekly_Data ****** #
+    #     st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
+    #     weekly_data = pg_data.groupby(pg_data['DATE'].dt.to_period('W'))[['ACTUAL MANPOWER', 'PLANNED MANPOWER']].sum()
+    #     weekly_data['NEW_PG'] = round(((weekly_data['PLANNED MANPOWER'] - weekly_data['ACTUAL MANPOWER'])/weekly_data['PLANNED MANPOWER'])*100, 2)
+    #     # st.write(weekly_data['NEW_PG'])
+    #     weekly_target = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
+    #     weekly_data.index = range(1, len(weekly_data) + 1)
+    #     weekly_color = []
+    #     for i in weekly_data.index:
+    #         target_value = weekly_target.get(i, 0)
+    #         data_value = weekly_data.loc[i, 'NEW_PG']
+    #         if data_value > target_value:
+    #             weekly_color.append("#fa2323")  # Data exceed target
+    #         else:
+    #             weekly_color.append("#5fe650")  # Data meet or are below target
+    #     fig = go.Figure(data=[go.Bar(x=weekly_data.index, y=weekly_data['NEW_PG'], marker_color=weekly_color)])
+    #     # Customize the chart layout
+    #     fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Weeks', yaxis_title='Personal Gap')
+    #     # Display the chart in Streamlit
+    #     st.plotly_chart(fig)
 
-    with cl3:   # ****** Monthly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Monthly Trend</center>""",unsafe_allow_html=True)
-        monthly_data = df.groupby(df['DATE'].dt.to_period('M'))[['ACTUAL MANPOWER', 'PLANNED MANPOWER']].sum()
-        monthly_target = pg_target.groupby(pg_target['DATE'].dt.to_period('M'))['VALUE'].sum()
-        monthly_data['NEW_PG'] = round(((monthly_data['PLANNED MANPOWER'] - monthly_data['ACTUAL MANPOWER'])/monthly_data['PLANNED MANPOWER'])*100, 2)
-        monthly_data.index = monthly_data.index.strftime('%b')
-        monthly_color = []
-        for i in monthly_data.index:
-            target_value = monthly_target.get(i, 0)
-            data_value = monthly_data.loc[i, 'NEW_PG']
-            if data_value > target_value:
-                monthly_color.append("#fa2323")  # Data exceed target
-            else:
-                monthly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=monthly_data['NEW_PG'], marker_color=monthly_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Months', yaxis_title='Personal Gap')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
+    # with cl3:   # ****** Monthly_Data ****** #
+    #     st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Monthly Trend</center>""",unsafe_allow_html=True)
+    #     monthly_data = df.groupby(df['DATE'].dt.to_period('M'))[['ACTUAL MANPOWER', 'PLANNED MANPOWER']].sum()
+    #     monthly_target = pg_target.groupby(pg_target['DATE'].dt.to_period('M'))['VALUE'].sum()
+    #     monthly_data['NEW_PG'] = round(((monthly_data['PLANNED MANPOWER'] - monthly_data['ACTUAL MANPOWER'])/monthly_data['PLANNED MANPOWER'])*100, 2)
+    #     monthly_data.index = monthly_data.index.strftime('%b')
+    #     monthly_color = []
+    #     for i in monthly_data.index:
+    #         target_value = monthly_target.get(i, 0)
+    #         data_value = monthly_data.loc[i, 'NEW_PG']
+    #         if data_value > target_value:
+    #             monthly_color.append("#fa2323")  # Data exceed target
+    #         else:
+    #             monthly_color.append("#5fe650")  # Data meet or are below target
+    #     fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=monthly_data['NEW_PG'], marker_color=monthly_color)])
+    #     # Customize the chart layout
+    #     fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Months', yaxis_title='Personal Gap')
+    #     # Display the chart in Streamlit
+    #     st.plotly_chart(fig)
 
 
     
@@ -210,7 +283,7 @@ def main():
 
         st.plotly_chart(fig)
 
-    st.subheader("Weekly Trend - Plant PPM")
+    # st.subheader("Weekly Trend - Plant PPM")
     weekly_data = hp_data.resample('W-MON', on='DATE').agg({'DATE': 'first', 'TARGET': 'mean', 'ACTUAL': 'mean'}).reset_index(drop=True)
     weekly_data = weekly_data.dropna()  # Remove rows with NaN values
     create_bar_chart(weekly_data, "Weekly Trend - Plant PPM")

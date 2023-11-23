@@ -396,7 +396,7 @@ def unsafe_incident_tracking():
     current_month = pd.Timestamp('now').to_period('M')
     incident_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
     incident_target = fetch_data("SET DAILY TARGET")
-    incident_target = incident_target[incident_target["CATEGORY"] == 'Incident detail']
+    incident_target = incident_target[incident_target["CATEGORY"] == 'Incident details']
     monthly_target = incident_target[((incident_target["DATE"].dt.to_period("M")) == current_month)]
     today_date = datetime.datetime.now()
     current_week_number = today_date.strftime('%U')
@@ -447,6 +447,7 @@ def unsafe_incident_tracking():
             formatted_date = datetime.datetime.strptime(i, '%b %d').strftime('%b %d')
             # Find the corresponding row in monthly_target with the same formatted date
             matching_target = monthly_target[monthly_target['DATE'].dt.strftime('%b %d') == formatted_date]
+            # st.write(matching_target)
             if not matching_target.empty:
                 target_value = matching_target["VALUE"].values[0]
                 if daily_data[i] > target_value:
@@ -1067,6 +1068,8 @@ def productivity_oee():
     current_month = pd.Timestamp('now').to_period('M')
     d_data = fetch_data("PRODUCTIVITY AND OEE")
     hp_data = d_data[d_data['DATE'].dt.to_period('M') == current_month]
+    human_data = hp_data[hp_data["CATEGORY"] == "HUMAN PRODUCTIVITY"]
+    plant_data = hp_data[hp_data["CATEGORY"] == "PLANT AGGREGATE OEE"]
     today_date = datetime.datetime.now()
     current_week_number = today_date.strftime('%U')
     st.subheader("Human Productivity")
@@ -1077,51 +1080,29 @@ def productivity_oee():
         # daily_data.index = daily_data.index.strftime('%a') 
         # st.bar_chart(daily_data, color=["#fa2323","#5fe650"])
 
-        desired_data = hp_data[hp_data['DATE'].dt.strftime('%U') == current_week_number]
-        hp_data = desired_data[desired_data["CATEGORY"] == "HUMAN PRODUCTIVITY"]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+        desired_data = human_data[human_data['DATE'].dt.strftime('%U') == current_week_number]
+        desired_data['Day'] = desired_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        filtered_df = desired_data[(desired_data['DATE'] >= start_of_week) & (desired_data['DATE'] <= end_of_week)]
+        filtered_df['color'] = np.where(filtered_df['ACTUAL'] < filtered_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(filtered_df['Day'], filtered_df['ACTUAL'], filtered_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='Actual', line=dict(color=my_color, width=40), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=filtered_df['Day'], y=filtered_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Actual')
         st.plotly_chart(fig, use_container_width=True)
+        pass
 
     with col2:  # ****** Weekly_Data ****** #
         # st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.5rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
         # weekly_data = hp_data.groupby(hp_data['DATE'].dt.to_period('W'))[['TARGET', 'ACTUAL']].sum()
         # weekly_data.index = range(1, len(weekly_data) + 1)
         # st.bar_chart(weekly_data, color=["#fa2323","#5fe650"])
-
-        hp_data = hp_data[hp_data["CATEGORY"] == "HUMAN PRODUCTIVITY"]
-        weekly_data = hp_data.groupby(hp_data['DATE'].dt.to_period('W'))[['ACTUAL', 'TARGET']].sum()
+        weekly_data = human_data.groupby(human_data['DATE'].dt.to_period('W'))[['ACTUAL', 'TARGET']].sum()
         weekly_data['COLOR'] = np.where(weekly_data['ACTUAL'] >= weekly_data['TARGET'], 'green', 'red')
         weekly_data.index = weekly_data.index.astype(str)
         weekly_data['WEEKLY_NUMBER'] = range(1, len(weekly_data) +1)
@@ -1134,14 +1115,6 @@ def productivity_oee():
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
@@ -1168,14 +1141,6 @@ def productivity_oee():
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
@@ -1184,55 +1149,33 @@ def productivity_oee():
         st.plotly_chart(fig, use_container_width=True)
     
     st.subheader("Plant Aggregate OEE")
-    # hp_data = d_data[(d_data['CATEGORY'] == 'PLANT AGGREGATE OEE') & (d_data['DATE'].dt.to_period('M') == current_month)]
     col1,col2,col3 = st.columns((1,1,1))
     with col1:  # ****** Daily_Data ****** #
         # daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
         # daily_data.index = daily_data.index.strftime('%a') 
-        # st.bar_chart(daily_data, color=["#fa2323","#5fe650"])
-        hp_data = desired_data[desired_data["CATEGORY"] == "PLANT AGGREGATE OEE"]
-        desired_data = hp_data[hp_data['DATE'].dt.strftime('%U') == current_week_number]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+        # st.bar_chart(daily_data, color=["#fa2323","#5fe650"]
+        hp_data = plant_data[plant_data['DATE'].dt.strftime('%U') == current_week_number]
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        filtered_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        filtered_df['color'] = np.where(filtered_df['ACTUAL'] < filtered_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(filtered_df['Day'], filtered_df['ACTUAL'], filtered_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='Actual', line=dict(color=my_color, width=40), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=filtered_df['Day'], y=filtered_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Actual')
         st.plotly_chart(fig, use_container_width=True)
+        pass
     
     with col2:  # ****** Weekly_Data ****** #
         # weekly_data = hp_data.groupby(hp_data['DATE'].dt.to_period('W'))[['TARGET', 'ACTUAL']].sum()
         # weekly_data.index = range(1, len(weekly_data) + 1)
         # st.bar_chart(weekly_data, color=["#fa2323","#5fe650"])
-        hp_data = hp_data[hp_data["CATEGORY"] == "PLANT AGGREGATE OEE"]
-        weekly_data = hp_data.groupby(hp_data['DATE'].dt.to_period('W'))[['ACTUAL', 'TARGET']].sum()
+        weekly_data = plant_data.groupby(plant_data['DATE'].dt.to_period('W'))[['ACTUAL', 'TARGET']].sum()
         weekly_data['COLOR'] = np.where(weekly_data['ACTUAL'] >= weekly_data['TARGET'], 'green', 'red')
         weekly_data.index = weekly_data.index.astype(str)
         weekly_data['WEEKLY_NUMBER'] = range(1, len(weekly_data) +1)
@@ -1245,14 +1188,6 @@ def productivity_oee():
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
@@ -1277,14 +1212,6 @@ def productivity_oee():
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
@@ -1394,71 +1321,59 @@ def mach_break_time():
     current_week_number = today_date.strftime('%U')
     cl1,cl2,cl3 = st.columns((1,1,1))
     with cl1:   # ****** Daily_Data ****** #
-        st.markdown("")
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.7rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
-        desired_data = month_data[month_data['DATE'].dt.strftime('%U') == current_week_number]
-        daily_data = desired_data.groupby(desired_data['DATE'].dt.to_period('D'))['B/D TIME'].sum()
-        daily_data.index = daily_data.index.strftime('%b %d')
-        daily_color = []
-        for i in daily_data.index:
-            # Format the date in the same way as the monthly_target data for comparison
-            formatted_date = datetime.datetime.strptime(i, '%b %d').strftime('%b %d')
-            # Find the corresponding row in monthly_target with the same formatted date
-            matching_target = monthly_target[monthly_target['DATE'].dt.strftime('%b %d') == formatted_date]
-            
-            if not matching_target.empty:
-                target_value = matching_target["VALUE"].values[0]
-                # print(daily_data[i], target_value)
-                if daily_data[i] > target_value:
-                    daily_color.append("#fa2323")  # Complaints exceed target
-                else:
-                    daily_color.append("#5fe650")  # Complaints meet or are below target
-            else:
-                daily_color.append("#5fe650")
-                
-        fig = go.Figure(data=[go.Bar(x=daily_data.index, y=daily_data, marker_color=daily_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Days', yaxis_title='Breakdown Time (Min)')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
+        # st.markdown("")
+        # st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.7rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
+        desired_data = month_data[month_data['DATE'].dt.strftime('%U') == current_week_number] #Data of current week
+        desired_data['Day'] = desired_data['DATE'].dt.strftime('%a')    #Day format in weekdays
+        desired_trgt = monthly_target[monthly_target['DATE'].dt.strftime('%U') == current_week_number] #Target data of current week
+        merged_data = pd.merge(desired_data, desired_trgt, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['B/D TIME'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        # st.write(merged_data)
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(merged_data['Day'], merged_data['B/D TIME'], merged_data['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='BD Time', line=dict(color=my_color, width=30), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=merged_data['Day'], y=merged_data['VALUE'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Time (min)')
+        st.plotly_chart(fig, use_container_width=True)
 
     with cl2:   # ****** Weekly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
         weekly_data = month_data.groupby(month_data['DATE'].dt.to_period('W'))['B/D TIME'].sum()
-        weekly_target = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
-        weekly_data.index = range(1, len(weekly_data) + 1)
-        weekly_color = []
-        for i in weekly_data.index:
-            target_value = weekly_target.get(i, 0)
-            data_value = weekly_data.get(i, 0)
-            if data_value > target_value:
-                weekly_color.append("#fa2323")  # Data exceed target
-            else:
-                weekly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=weekly_data.index, y=weekly_data, marker_color=weekly_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Weeks', yaxis_title='Breakdown Time (Min)')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
+        weekly_trgt = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
+        merged_data = pd.merge(weekly_data, weekly_trgt, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['B/D TIME'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        weekly_data.index = weekly_data.index.astype(str)
+        weekly_data['WEEKLY_NUMBER'] = range(1, len(weekly_data) +1)
+        fig = go.Figure(data=[
+            go.Bar(
+                x=list(weekly_data['WEEKLY_NUMBER']),  # Convert range to list
+                y=merged_data['B/D TIME'],
+                marker_color=[color for color in merged_data['color']],
+            ),
+        ])
+        fig.update_layout(
+            xaxis_title='Week',
+            yaxis_title='Total Actual',
+            title="Weekly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
     with cl3:   # ****** Monthly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Monthly Trend</center>""",unsafe_allow_html=True)
         monthly_data = df.groupby(df['DATE'].dt.to_period('M'))['B/D TIME'].sum()
         monthly_target = target_data.groupby(target_data['DATE'].dt.to_period('M'))['VALUE'].sum()
+        merged_data = pd.merge(monthly_data, monthly_target, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['B/D TIME'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
         monthly_data.index = monthly_data.index.strftime('%b')
-        monthly_color = []
-        for i in monthly_data.index:
-            target_value = monthly_target.get(i, 0)
-            data_value = monthly_data.get(i, 0)
-            if data_value > target_value:
-                monthly_color.append("#fa2323")  # Data exceed target
-            else:
-                monthly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=monthly_data, marker_color=monthly_color)])
+        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=merged_data['B/D TIME'], marker_color=[color for color in merged_data['color']],)])
         # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Months', yaxis_title='Breakdown Time (Min)')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
+        fig.update_layout(
+            xaxis_title='Month',
+            yaxis_title='Total Actual',
+            title="Monthly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
 #************************** Cost_FTD End **************************#
 
@@ -1869,7 +1784,7 @@ def otif():
     # oe_spare_data = d_data[(d_data['CATEGORY'] == 'OE_Spare') & (d_data['DATE'].dt.to_period('M') == current_month)]
     # aftermarket_data = d_data[(d_data['CATEGORY'] == 'AfterMarket') & (d_data['DATE'].dt.to_period('M') == current_month)]
     # export_data = d_data[(d_data['CATEGORY'] == 'Export') & (d_data['DATE'].dt.to_period('M') == current_month)]
-    # st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
+    st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
     today_date = datetime.datetime.now()
     current_week_number = today_date.strftime('%U')
     d1,d2,d3,d4 = st.columns((1,1,1,1))
@@ -1877,153 +1792,222 @@ def otif():
         # Filter the DataFrame for the desired month and week number
         desired_data = otif_month_data[otif_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "OE"]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        filtered_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        filtered_df['color'] = np.where(filtered_df['ACTUAL'] < filtered_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(filtered_df['Day'], filtered_df['ACTUAL'], filtered_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='Actual', line=dict(color=my_color, width=25), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=filtered_df['Day'], y=filtered_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='OE', xaxis_title='Day', yaxis_title='Actual')
         st.plotly_chart(fig, use_container_width=True)
+
+
+        # daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
+        # daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
+        # # Create a bar chart using Plotly Graph Objects with explicitly defined colors
+        # colors = {'green': '#5fe650', 'red': '#fa2323'}
+        # fig = go.Figure(data=[
+        #     go.Bar(
+        #         x=daily_data.index.strftime('%a'),
+        #         y=daily_data['ACTUAL'],
+        #         marker_color=[colors[color] for color in daily_data['COLOR']],
+        #     ),
+        # ])
+        # for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date.strftime('%a'),
+        #         y=actual + 5,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
+        # if not daily_data['ACTUAL'].empty:
+        #     max_actual = daily_data['ACTUAL'].max()
+        # else:
+        #     max_actual = 0
+        # if not daily_data['TARGET'].empty:
+        #     max_target = daily_data['TARGET'].max()
+        # else:
+        #     max_target = 0
+        # fig.update_layout(
+        #     xaxis_title='Date',
+        #     yaxis_title='Actual',
+        #     title="Daily Trend",
+        #     yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
+        # )
+        # st.plotly_chart(fig, use_container_width=True)
     with d2:    # ****** Daily_Data ****** #
         desired_data = otif_month_data[otif_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "OE_Spare"]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        filtered_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        filtered_df['color'] = np.where(filtered_df['ACTUAL'] < filtered_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(filtered_df['Day'], filtered_df['ACTUAL'], filtered_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='Actual', line=dict(color=my_color, width=25), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=filtered_df['Day'], y=filtered_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='OE SPAREs', xaxis_title='Day', yaxis_title='Actual')
         st.plotly_chart(fig, use_container_width=True)
+
+
+        # daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
+        # daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
+        # # Create a bar chart using Plotly Graph Objects with explicitly defined colors
+        # colors = {'green': '#5fe650', 'red': '#fa2323'}
+        # fig = go.Figure(data=[
+        #     go.Bar(
+        #         x=daily_data.index.strftime('%a'),
+        #         y=daily_data['ACTUAL'],
+        #         marker_color=[colors[color] for color in daily_data['COLOR']],
+        #     ),
+        # ])
+        # for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date.strftime('%a'),
+        #         y=actual + 5,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
+        # if not daily_data['ACTUAL'].empty:
+        #     max_actual = daily_data['ACTUAL'].max()
+        # else:
+        #     max_actual = 0
+        # if not daily_data['TARGET'].empty:
+        #     max_target = daily_data['TARGET'].max()
+        # else:
+        #     max_target = 0
+        # fig.update_layout(
+        #     xaxis_title='Date',
+        #     yaxis_title='Actual',
+        #     title="Daily Trend",
+        #     yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
+        # )
+        # st.plotly_chart(fig, use_container_width=True)
     with d3:    # ****** Daily_Data ****** #
         desired_data = otif_month_data[otif_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "AfterMarket"]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        filtered_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        filtered_df['color'] = np.where(filtered_df['ACTUAL'] < filtered_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(filtered_df['Day'], filtered_df['ACTUAL'], filtered_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='Actual', line=dict(color=my_color, width=25), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=filtered_df['Day'], y=filtered_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='AFTERMARKET', xaxis_title='Day', yaxis_title='Actual')
         st.plotly_chart(fig, use_container_width=True)
+
+
+        # daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
+        # daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
+        # # Create a bar chart using Plotly Graph Objects with explicitly defined colors
+        # colors = {'green': '#5fe650', 'red': '#fa2323'}
+        # fig = go.Figure(data=[
+        #     go.Bar(
+        #         x=daily_data.index.strftime('%a'),
+        #         y=daily_data['ACTUAL'],
+        #         marker_color=[colors[color] for color in daily_data['COLOR']],
+        #     ),
+        # ])
+        # for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date.strftime('%a'),
+        #         y=actual + 5,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
+        # if not daily_data['ACTUAL'].empty:
+        #     max_actual = daily_data['ACTUAL'].max()
+        # else:
+        #     max_actual = 0
+        # if not daily_data['TARGET'].empty:
+        #     max_target = daily_data['TARGET'].max()
+        # else:
+        #     max_target = 0
+        # fig.update_layout(
+        #     xaxis_title='Date',
+        #     yaxis_title='Actual',
+        #     title="Daily Trend",
+        #     yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
+        # )
+        # st.plotly_chart(fig, use_container_width=True)
     with d4:    # ****** Daily_Data ****** #
         desired_data = otif_month_data[otif_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "Export"]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        filtered_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        filtered_df['color'] = np.where(filtered_df['ACTUAL'] < filtered_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(filtered_df['Day'], filtered_df['ACTUAL'], filtered_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='Actual', line=dict(color=my_color, width=25), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=filtered_df['Day'], y=filtered_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='EXPORT', xaxis_title='Day', yaxis_title='Actual')
         st.plotly_chart(fig, use_container_width=True)
 
-    # st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
+
+        # daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
+        # daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
+        # # Create a bar chart using Plotly Graph Objects with explicitly defined colors
+        # colors = {'green': '#5fe650', 'red': '#fa2323'}
+        # fig = go.Figure(data=[
+        #     go.Bar(
+        #         x=daily_data.index.strftime('%a'),
+        #         y=daily_data['ACTUAL'],
+        #         marker_color=[colors[color] for color in daily_data['COLOR']],
+        #     ),
+        # ])
+        # for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date.strftime('%a'),
+        #         y=actual + 5,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
+        # if not daily_data['ACTUAL'].empty:
+        #     max_actual = daily_data['ACTUAL'].max()
+        # else:
+        #     max_actual = 0
+        # if not daily_data['TARGET'].empty:
+        #     max_target = daily_data['TARGET'].max()
+        # else:
+        #     max_target = 0
+        # fig.update_layout(
+        #     xaxis_title='Date',
+        #     yaxis_title='Actual',
+        #     title="Daily Trend",
+        #     yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
+        # )
+        # st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("___")
+    st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
     m1,m2,m3,m4 = st.columns((1,1,1,1))
     with m1:    # ****** Weekly_Data ****** #
         # weekly_data = oe_data.groupby(oe_data['DATE'].dt.to_period('W'))[['TARGET', 'ACTUAL']].sum()
@@ -2044,18 +2028,18 @@ def otif():
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=week,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
-            title="Weekly Trend",
+            title="OE",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -2078,18 +2062,18 @@ def otif():
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=week,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
-            title="Weekly Trend",
+            title="OE SPARES",
         )
         st.plotly_chart(fig, use_container_width=True)
     
@@ -2112,18 +2096,18 @@ def otif():
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=week,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
-            title="Weekly Trend",
+            title="AFTERMARKET",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -2145,22 +2129,23 @@ def otif():
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=week,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
-            title="Weekly Trend",
+            title="EXPORT",
         )
         st.plotly_chart(fig, use_container_width=True)
     
-    # st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Yearly Trend</center>""",unsafe_allow_html=True)
+    st.markdown("___")
+    st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Yearly Trend</center>""",unsafe_allow_html=True)
     y1,y2,y3,y4 = st.columns((1,1,1,1))
     with y1:    # ****** Monthly_Data ****** #
         # oe_data_month = d_data[d_data['CATEGORY'] == 'OE']
@@ -2179,18 +2164,18 @@ def otif():
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
-            title="Monthly Trend",
+            title="OE",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -2212,18 +2197,18 @@ def otif():
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
-            title="Monthly Trend",
+            title="OE SPARES",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -2245,18 +2230,18 @@ def otif():
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
-            title="Monthly Trend",
+            title="AFTERMARKET",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -2278,18 +2263,18 @@ def otif():
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
-            title="Monthly Trend",
+            title="EXPORT",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -2301,26 +2286,9 @@ def sale_actual():
     current_month = pd.Timestamp('now').to_period('M')
     d_data = fetch_data("SALE PLAN VS ACTUAL")
     hp_data = d_data[d_data['DATE'].dt.to_period('M') == current_month]
-    st.subheader("Sale Plan vs Actual")
-    col1,col2,col3 = st.columns((1,1,1))
-    with col1:
-        # ****** Daily_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.5rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['BUDGETED SALE', 'ORDER BOOK', 'ACTUAL SALE']].sum()
-        daily_data.index = daily_data.index.strftime('%a') 
-        st.bar_chart(daily_data, color=["#5fe650", "#71d6f5", "#424242"])
-    with col2:
-        # ****** Weekly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.5rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
-        weekly_data = hp_data.groupby(hp_data['DATE'].dt.to_period('W'))[['BUDGETED SALE', 'ORDER BOOK', 'ACTUAL SALE']].sum()
-        weekly_data.index = range(1, len(weekly_data) + 1)
-        st.bar_chart(weekly_data, color=["#5fe650", "#71d6f5", "#424242"])
-    with col3:
-        # ****** Monthly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.5rem 0rem;'>Yearly Trend</center>""",unsafe_allow_html=True)
-        monthly_data = d_data.groupby(d_data['DATE'].dt.to_period('M'))[['BUDGETED SALE', 'ORDER BOOK', 'ACTUAL SALE']].sum()
-        monthly_data.index = monthly_data.index.strftime('%b')
-        st.bar_chart(monthly_data, color=["#5fe650", "#71d6f5", "#424242"])
+    today_date = datetime.datetime.now()
+    current_week_number = today_date.strftime('%U')
+    
 
     sale_plan = d_data
     sale_plan["DATE"] = pd.to_datetime(sale_plan["DATE"])
@@ -2417,6 +2385,63 @@ def sale_actual():
                 </div>
             </div>
     """,unsafe_allow_html=True)
+
+    col1,col2,col3 = st.columns((1,1,1))
+    with col1:  # ****** Daily_Data ****** #
+        hp_data = hp_data[hp_data['DATE'].dt.strftime('%U') == current_week_number]
+
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        new_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        new_df['color'] = np.where(new_df['BUDGETED SALE'] >= new_df['ACTUAL SALE'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(new_df['Day'], new_df['ACTUAL SALE'], new_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='Actual', line=dict(color=my_color, width=35), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=new_df['Day'], y=new_df['BUDGETED SALE'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Values')
+        st.plotly_chart(fig, use_container_width=True)
+    with col2:  # ****** Weekly_Data ****** #
+        weekly_data = hp_data.groupby(hp_data['DATE'].dt.to_period('W'))[['ACTUAL SALE', 'BUDGETED SALE']].sum()
+        weekly_data['COLOR'] = np.where(weekly_data['ACTUAL SALE'] >= weekly_data['BUDGETED SALE'], 'green', 'red')
+        weekly_data.index = weekly_data.index.astype(str)
+        weekly_data['WEEKLY_NUMBER'] = range(1, len(weekly_data) +1)
+        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
+        colors = {'green': '#5fe650', 'red': '#fa2323'}
+        fig = go.Figure(data=[
+            go.Bar(
+                x=weekly_data['WEEKLY_NUMBER'],
+                y=weekly_data['ACTUAL SALE'],
+                marker_color=[colors[color] for color in weekly_data['COLOR']],
+            ),
+        ])
+        fig.update_layout(
+            xaxis_title='Week',
+            yaxis_title='Total Actual',
+            title="Weekly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    with col3:  # ****** Monthly_Data ****** 
+        monthly_data = d_data.groupby(d_data['DATE'].dt.to_period('M'))[['BUDGETED SALE', 'ACTUAL SALE']].sum()
+        monthly_data['COLOR'] = np.where(monthly_data['ACTUAL SALE'] >= monthly_data['BUDGETED SALE'], 'green', 'red')
+        monthly_data.index = monthly_data.index.strftime('%b')
+        colors = {'green': '#5fe650', 'red': '#fa2323'}
+        fig = go.Figure(data=[
+            go.Bar(
+                x=monthly_data.index,
+                y=monthly_data['ACTUAL SALE'],
+                marker_color=[colors[color] for color in monthly_data['COLOR']],
+            ),
+        ])
+        fig.update_layout(
+            xaxis_title='Month',
+            yaxis_title='Total Actual',
+            title="Monthly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
 def critcal_customer_pdi():
     msil = cmp(0,0)
@@ -2517,21 +2542,21 @@ def critcal_customer_pdi():
 
     d_data['DATE'] = pd.to_datetime(d_data['DATE'])
     current_month = pd.Timestamp('now').to_period('M')
-    col1,col2,col3,col4 = st.columns((1,1,1,1))
-    with col1:
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>MSIL</center>""",unsafe_allow_html=True)
-    with col2:
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>HD</center>""",unsafe_allow_html=True)
-    with col3:
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>HONDA</center>""",unsafe_allow_html=True)
-    with col4:
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>GM</center>""",unsafe_allow_html=True)
+    # col1,col2,col3,col4 = st.columns((1,1,1,1))
+    # with col1:
+    #     st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>MSIL</center>""",unsafe_allow_html=True)
+    # with col2:
+    #     st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>HD</center>""",unsafe_allow_html=True)
+    # with col3:
+    #     st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>HONDA</center>""",unsafe_allow_html=True)
+    # with col4:
+    #     st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>GM</center>""",unsafe_allow_html=True)
 
     msil_data = d_data[(d_data['CATEGORY'] == 'MSIL') & (d_data['DATE'].dt.to_period('M') == current_month)]
     hd_data = d_data[(d_data['CATEGORY'] == 'HD') & (d_data['DATE'].dt.to_period('M') == current_month)]
     honda = d_data[(d_data['CATEGORY'] == 'Honda') & (d_data['DATE'].dt.to_period('M') == current_month)]
     gm = d_data[(d_data['CATEGORY'] == 'GM') & (d_data['DATE'].dt.to_period('M') == current_month)]
-    # st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
+    st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
     cc_month_data = fetch_month_data("OTIF_CC PDI")
     today_date = datetime.datetime.now()
     current_week_number = today_date.strftime('%U')
@@ -2544,39 +2569,19 @@ def critcal_customer_pdi():
         # Filter the DataFrame for the desired month and week number
         desired_data = cc_month_data[cc_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "MSIL"]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        filtered_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        filtered_df['color'] = np.where(filtered_df['ACTUAL'] < filtered_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(filtered_df['Day'], filtered_df['ACTUAL'], filtered_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='Actual', line=dict(color=my_color, width=25), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=filtered_df['Day'], y=filtered_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='MSIL', xaxis_title='Day', yaxis_title='Actual')
         st.plotly_chart(fig, use_container_width=True)
 
     with d2:    # ****** Daily_Data ****** #
@@ -2587,39 +2592,19 @@ def critcal_customer_pdi():
         # Filter the DataFrame for the desired month and week number
         desired_data = cc_month_data[cc_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "HD"]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        filtered_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        filtered_df['color'] = np.where(filtered_df['ACTUAL'] < filtered_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(filtered_df['Day'], filtered_df['ACTUAL'], filtered_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='Actual', line=dict(color=my_color, width=25), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=filtered_df['Day'], y=filtered_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='HD', xaxis_title='Day', yaxis_title='Actual')
         st.plotly_chart(fig, use_container_width=True)
 
     with d3:    # ****** Daily_Data ****** #
@@ -2630,39 +2615,19 @@ def critcal_customer_pdi():
         # Filter the DataFrame for the desired month and week number
         desired_data = cc_month_data[cc_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "Honda"]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        filtered_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        filtered_df['color'] = np.where(filtered_df['ACTUAL'] < filtered_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(filtered_df['Day'], filtered_df['ACTUAL'], filtered_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='Actual', line=dict(color=my_color, width=25), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=filtered_df['Day'], y=filtered_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='HONDA', xaxis_title='Day', yaxis_title='Actual')
         st.plotly_chart(fig, use_container_width=True)
 
     with d4:    # ****** Daily_Data ****** #
@@ -2673,42 +2638,23 @@ def critcal_customer_pdi():
         # Filter the DataFrame for the desired month and week number
         desired_data = cc_month_data[cc_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "GM"]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        filtered_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        filtered_df['color'] = np.where(filtered_df['ACTUAL'] < filtered_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(filtered_df['Day'], filtered_df['ACTUAL'], filtered_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='Actual', line=dict(color=my_color, width=25), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=filtered_df['Day'], y=filtered_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='GM', xaxis_title='Day', yaxis_title='Actual')
         st.plotly_chart(fig, use_container_width=True)
 
-    # st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
+    st.markdown("___")
+    st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
     m1,m2,m3,m4 = st.columns((1,1,1,1))
     with m1:    # ****** Weekly_Data ****** #
         # weekly_data = msil_data.groupby(msil_data['DATE'].dt.to_period('W'))[['TARGET', 'ACTUAL']].sum()
@@ -2729,18 +2675,10 @@ def critcal_customer_pdi():
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
-            title="Weekly Trend",
+            title="MSIL",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -2763,18 +2701,10 @@ def critcal_customer_pdi():
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
-            title="Weekly Trend",
+            title="HD",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -2797,18 +2727,10 @@ def critcal_customer_pdi():
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
-            title="Weekly Trend",
+            title="HONDA",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -2831,23 +2753,15 @@ def critcal_customer_pdi():
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
-            title="Weekly Trend",
+            title="GM",
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    
-    # st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Yearly Trend</center>""",unsafe_allow_html=True)
+    st.markdown("___")
+    st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Yearly Trend</center>""",unsafe_allow_html=True)
     y1,y2,y3,y4 = st.columns((1,1,1,1))
     with y1:    # ****** Monthly_Data ****** #
         # msil_data_month = d_data[d_data['CATEGORY'] == 'MSIL']
@@ -2867,18 +2781,10 @@ def critcal_customer_pdi():
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
-            title="Monthly Trend",
+            title="MSIL",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -2900,18 +2806,10 @@ def critcal_customer_pdi():
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
-            title="Monthly Trend",
+            title="HD",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -2933,18 +2831,10 @@ def critcal_customer_pdi():
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
-            title="Monthly Trend",
+            title="HONDA",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -2966,18 +2856,10 @@ def critcal_customer_pdi():
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
-            title="Monthly Trend",
+            title="GM",
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -3508,40 +3390,57 @@ def plant_supplier_ppm():   # ******** Plant PPM & Supplier PPM ******** #
     with col1:  # ****** Daily_Data ****** #
         desired_data = hp_data[hp_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "PLANT PPM"]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        new_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        new_df['color'] = np.where(new_df['ACTUAL'] < new_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(new_df['Day'], new_df['ACTUAL'], new_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', line=dict(color=my_color, width=35), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=new_df['Day'], y=new_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Actual vs Target Values', xaxis_title='Day', yaxis_title='Values')
         st.plotly_chart(fig, use_container_width=True)
+
+
+        # daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
+        # daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
+        # # Create a bar chart using Plotly Graph Objects with explicitly defined colors
+        # colors = {'green': '#5fe650', 'red': '#fa2323'}
+        # fig = go.Figure(data=[
+        #     go.Bar(
+        #         x=daily_data.index.strftime('%a'),
+        #         y=daily_data['ACTUAL'],
+        #         marker_color=[colors[color] for color in daily_data['COLOR']],
+        #     ),
+        # ])
+        # for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date.strftime('%a'),
+        #         y=actual + 5,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
+        # if not daily_data['ACTUAL'].empty:
+        #     max_actual = daily_data['ACTUAL'].max()
+        # else:
+        #     max_actual = 0
+        # if not daily_data['TARGET'].empty:
+        #     max_target = daily_data['TARGET'].max()
+        # else:
+        #     max_target = 0
+        # fig.update_layout(
+        #     xaxis_title='Date',
+        #     yaxis_title='Actual',
+        #     title="Daily Trend",
+        #     yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
+        # )
+        # st.plotly_chart(fig, use_container_width=True)
 
     with col2:  # ****** Weekly_Data ****** #
         hp_data = hp_data[hp_data["CATEGORY"] == "PLANT PPM"]
@@ -3558,14 +3457,14 @@ def plant_supplier_ppm():   # ******** Plant PPM & Supplier PPM ******** #
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=week,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
@@ -3586,14 +3485,14 @@ def plant_supplier_ppm():   # ******** Plant PPM & Supplier PPM ******** #
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
@@ -3612,40 +3511,57 @@ def plant_supplier_ppm():   # ******** Plant PPM & Supplier PPM ******** #
         # st.bar_chart(daily_data, color=["#fa2323","#5fe650"])
         desired_data = hp_data[hp_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "SUPPLIER PPM"]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        new_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        new_df['color'] = np.where(new_df['ACTUAL'] < new_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(new_df['Day'], new_df['ACTUAL'], new_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', line=dict(color=my_color, width=35), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=new_df['Day'], y=new_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Actual vs Target Values', xaxis_title='Day', yaxis_title='Values')
         st.plotly_chart(fig, use_container_width=True)
+
+
+        # daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
+        # daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
+        # # Create a bar chart using Plotly Graph Objects with explicitly defined colors
+        # colors = {'green': '#5fe650', 'red': '#fa2323'}
+        # fig = go.Figure(data=[
+        #     go.Bar(
+        #         x=daily_data.index.strftime('%a'),
+        #         y=daily_data['ACTUAL'],
+        #         marker_color=[colors[color] for color in daily_data['COLOR']],
+        #     ),
+        # ])
+        # for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date.strftime('%a'),
+        #         y=actual + 5,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
+        # if not daily_data['ACTUAL'].empty:
+        #     max_actual = daily_data['ACTUAL'].max()
+        # else:
+        #     max_actual = 0
+        # if not daily_data['TARGET'].empty:
+        #     max_target = daily_data['TARGET'].max()
+        # else:
+        #     max_target = 0
+        # fig.update_layout(
+        #     xaxis_title='Date',
+        #     yaxis_title='Actual',
+        #     title="Daily Trend",
+        #     yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
+        # )
+        # st.plotly_chart(fig, use_container_width=True)
     
     with col2:  # ****** Weekly_Data ****** #
         # hp_data = hp_data[hp_data["CATEGORY"] == "SUPPLIER PPM"]
@@ -3668,14 +3584,14 @@ def plant_supplier_ppm():   # ******** Plant PPM & Supplier PPM ******** #
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=week,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
@@ -3702,14 +3618,14 @@ def plant_supplier_ppm():   # ******** Plant PPM & Supplier PPM ******** #
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
@@ -3870,40 +3786,56 @@ def ftp_rejection():    # ******** FTP And Reported Rejection ******** #
     with col1:  # ****** Daily_Data ****** #
         desired_data = ftp_month_data[ftp_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "First Time Pass (%)"]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        filtered_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        filtered_df['color'] = np.where(filtered_df['ACTUAL'] < filtered_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(filtered_df['Day'], filtered_df['ACTUAL'], filtered_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', line=dict(color=my_color, width=40), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=filtered_df['Day'], y=filtered_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Values')
         st.plotly_chart(fig, use_container_width=True)
+
+        # daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
+        # daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
+        # # Create a bar chart using Plotly Graph Objects with explicitly defined colors
+        # colors = {'green': '#5fe650', 'red': '#fa2323'}
+        # fig = go.Figure(data=[
+        #     go.Bar(
+        #         x=daily_data.index.strftime('%a'),
+        #         y=daily_data['ACTUAL'],
+        #         marker_color=[colors[color] for color in daily_data['COLOR']],
+        #     ),
+        # ])
+        # for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date.strftime('%a'),
+        #         y=actual + 5,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
+        # if not daily_data['ACTUAL'].empty:
+        #     max_actual = daily_data['ACTUAL'].max()
+        # else:
+        #     max_actual = 0
+        # if not daily_data['TARGET'].empty:
+        #     max_target = daily_data['TARGET'].max()
+        # else:
+        #     max_target = 0
+        # fig.update_layout(
+        #     xaxis_title='Date',
+        #     yaxis_title='Actual',
+        #     title="Daily Trend",
+        #     yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
+        # )
+        # st.plotly_chart(fig, use_container_width=True)
     with col2:  # ****** Weekly_Data ****** #
         hp_data = ftp_month_data[ftp_month_data["CATEGORY"] == "First Time Pass (%)"]
         weekly_data = hp_data.groupby(hp_data['DATE'].dt.to_period('W'))[['ACTUAL', 'TARGET']].sum()
@@ -3919,14 +3851,14 @@ def ftp_rejection():    # ******** FTP And Reported Rejection ******** #
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
+            # fig.add_annotation(
+            #     x=week,
+            #     y=actual + 10,  # Adjust the vertical position of the text annotation
+            #     text=str(target),
+            #     showarrow=False,
+            #     font=dict(color='black', size=15)
+            # )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
@@ -3946,14 +3878,14 @@ def ftp_rejection():    # ******** FTP And Reported Rejection ******** #
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
@@ -3967,40 +3899,57 @@ def ftp_rejection():    # ******** FTP And Reported Rejection ******** #
     with col1:  # ****** Daily_Data ****** #
         desired_data = ftp_month_data[ftp_month_data['DATE'].dt.strftime('%U') == current_week_number]
         hp_data = desired_data[desired_data["CATEGORY"] == "Reported Rejection (%)"]
-        daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
-        daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
-        # Create a bar chart using Plotly Graph Objects with explicitly defined colors
-        colors = {'green': '#5fe650', 'red': '#fa2323'}
-        fig = go.Figure(data=[
-            go.Bar(
-                x=daily_data.index.strftime('%a'),
-                y=daily_data['ACTUAL'],
-                marker_color=[colors[color] for color in daily_data['COLOR']],
-            ),
-        ])
-        for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date.strftime('%a'),
-                y=actual + 5,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
-        if not daily_data['ACTUAL'].empty:
-            max_actual = daily_data['ACTUAL'].max()
-        else:
-            max_actual = 0
-        if not daily_data['TARGET'].empty:
-            max_target = daily_data['TARGET'].max()
-        else:
-            max_target = 0
-        fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Actual',
-            title="Daily Trend",
-            yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
-        )
+
+        hp_data['Day'] = hp_data['DATE'].dt.strftime('%a')  # Add a 'Day' column with abbreviated day names
+        start_of_week = today_date - timedelta(days=today_date.weekday()+1)
+        end_of_week = start_of_week + timedelta(days=6)
+        filtered_df = hp_data[(hp_data['DATE'] >= start_of_week) & (hp_data['DATE'] <= end_of_week)]
+        filtered_df['color'] = np.where(filtered_df['ACTUAL'] < filtered_df['TARGET'], '#fa2323', '#5fe650' )
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(filtered_df['Day'], filtered_df['ACTUAL'], filtered_df['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', line=dict(color=my_color, width=40), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=filtered_df['Day'], y=filtered_df['TARGET'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Values')
         st.plotly_chart(fig, use_container_width=True)
+
+
+        # daily_data = hp_data.groupby(hp_data['DATE'].dt.to_period('D'))[['TARGET', 'ACTUAL']].sum()
+        # daily_data['COLOR'] = np.where(daily_data['ACTUAL'] >= daily_data['TARGET'], 'green', 'red')
+        # # Create a bar chart using Plotly Graph Objects with explicitly defined colors
+        # colors = {'green': '#5fe650', 'red': '#fa2323'}
+        # fig = go.Figure(data=[
+        #     go.Bar(
+        #         x=daily_data.index.strftime('%a'),
+        #         y=daily_data['ACTUAL'],
+        #         marker_color=[colors[color] for color in daily_data['COLOR']],
+        #     ),
+        # ])
+        # for i, (date, target, actual) in enumerate(zip(daily_data.index, daily_data['TARGET'], daily_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date.strftime('%a'),
+        #         y=actual + 5,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
+        # if not daily_data['ACTUAL'].empty:
+        #     max_actual = daily_data['ACTUAL'].max()
+        # else:
+        #     max_actual = 0
+        # if not daily_data['TARGET'].empty:
+        #     max_target = daily_data['TARGET'].max()
+        # else:
+        #     max_target = 0
+        # fig.update_layout(
+        #     xaxis_title='Date',
+        #     yaxis_title='Actual',
+        #     title="Daily Trend",
+        #     yaxis_range=[0, max(max_actual, max_target)]  # Set y-axis range
+        # )
+        # st.plotly_chart(fig, use_container_width=True)
     with col2:  # ****** Weekly_Data ****** #
         hp_data = ftp_month_data[ftp_month_data["CATEGORY"] == "Reported Rejection (%)"]
         weekly_data = hp_data.groupby(hp_data['DATE'].dt.to_period('W'))[['ACTUAL', 'TARGET']].sum()
@@ -4016,14 +3965,14 @@ def ftp_rejection():    # ******** FTP And Reported Rejection ******** #
                 marker_color=[colors[color] for color in weekly_data['COLOR']],
             ),
         ])
-        for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=week,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (week, target, actual) in enumerate(zip(weekly_data['WEEKLY_NUMBER'], weekly_data['TARGET'], weekly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=week,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Week',
             yaxis_title='Total Actual',
@@ -4043,14 +3992,14 @@ def ftp_rejection():    # ******** FTP And Reported Rejection ******** #
                 marker_color=[colors[color] for color in monthly_data['COLOR']],
             ),
         ])
-        for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
-            fig.add_annotation(
-                x=date,
-                y=actual + 10,  # Adjust the vertical position of the text annotation
-                text=str(target),
-                showarrow=False,
-                font=dict(color='black', size=15)
-            )
+        # for i, (date, target, actual) in enumerate(zip(monthly_data.index, monthly_data['TARGET'], monthly_data['ACTUAL'])):
+        #     fig.add_annotation(
+        #         x=date,
+        #         y=actual + 10,  # Adjust the vertical position of the text annotation
+        #         text=str(target),
+        #         showarrow=False,
+        #         font=dict(color='black', size=15)
+        #     )
         fig.update_layout(
             xaxis_title='Month',
             yaxis_title='Total Actual',
@@ -4467,6 +4416,8 @@ def personal_gap():
     total_req = month_pg["PLANNED MANPOWER"].sum()
     total_avail = month_pg["ACTUAL MANPOWER"].sum()
     total_pg = round(((total_req-total_avail)/total_req)*100, 2)
+    days = datetime.date.today()
+    total_days_in_month = calendar.monthrange(days.year, days.month)[1]
     # st.write(total_pg)
     my_issue = []
     issue_len = len(month_pg)
@@ -4527,74 +4478,59 @@ def personal_gap():
     current_week_number = today_date.strftime('%U')
     cl1,cl2,cl3 = st.columns((1,1,1))
     with cl1:   # ****** Daily_Data ****** #
-        st.markdown("")
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.7rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
-        desired_data = month_pg[month_pg['DATE'].dt.strftime('%U') == current_week_number]
-        daily_data = desired_data.groupby(desired_data['DATE'].dt.to_period('D'))['PERSONAL GAP'].sum()
-        daily_data.index = daily_data.index.strftime('%b %d')
-        daily_color = []
-        for i in daily_data.index:
-            # Format the date in the same way as the monthly_target data for comparison
-            formatted_date = datetime.datetime.strptime(i, '%b %d').strftime('%b %d')
-            # Find the corresponding row in monthly_target with the same formatted date
-            matching_target = monthly_target[monthly_target['DATE'].dt.strftime('%b %d') == formatted_date]
-            
-            if not matching_target.empty:
-                target_value = matching_target["VALUE"].values[0]
-                # print(daily_data[i], target_value)
-                if daily_data[i] > target_value:
-                    daily_color.append("#fa2323")  # Complaints exceed target
-                else:
-                    daily_color.append("#5fe650")  # Complaints meet or are below target
-            else:
-                daily_color.append("#5fe650")
-                
-        fig = go.Figure(data=[go.Bar(x=daily_data.index, y=daily_data, marker_color=daily_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Days', yaxis_title='Personal Gap')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
+        desired_data = month_pg[month_pg['DATE'].dt.strftime('%U') == current_week_number] #Data of current week
+        desired_data['Day'] = desired_data['DATE'].dt.strftime('%a')    #Day format in weekdays
+        desired_trgt = monthly_target[monthly_target['DATE'].dt.strftime('%U') == current_week_number] #Target data of current week
+        merged_data = pd.merge(desired_data, desired_trgt, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['PERSONAL GAP'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        # st.write(merged_data)
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(merged_data['Day'], merged_data['PERSONAL GAP'], merged_data['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='Personal Gap', line=dict(color=my_color, width=30), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=merged_data['Day'], y=merged_data['VALUE'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Personal Gap')
+        st.plotly_chart(fig, use_container_width=True)
 
     with cl2:   # ****** Weekly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
         weekly_data = month_pg.groupby(month_pg['DATE'].dt.to_period('W'))[['ACTUAL MANPOWER', 'PLANNED MANPOWER']].sum()
         weekly_data['NEW_PG'] = round(((weekly_data['PLANNED MANPOWER'] - weekly_data['ACTUAL MANPOWER'])/weekly_data['PLANNED MANPOWER'])*100, 2)
-        # st.write(weekly_data['NEW_PG'])
-        weekly_target = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
-        weekly_data.index = range(1, len(weekly_data) + 1)
-        weekly_color = []
-        for i in weekly_data.index:
-            target_value = weekly_target.get(i, 0)
-            data_value = weekly_data.loc[i, 'NEW_PG']
-            if data_value > target_value:
-                weekly_color.append("#fa2323")  # Data exceed target
-            else:
-                weekly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=weekly_data.index, y=weekly_data['NEW_PG'], marker_color=weekly_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Weeks', yaxis_title='Personal Gap')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
+        weekly_target = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum() / 6
+        merged_data = pd.merge(weekly_data, weekly_target, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['NEW_PG'] < merged_data['VALUE'], "#fa2323", "#5fe650")
+        weekly_data.index = weekly_data.index.astype(str)
+        weekly_data['WEEKLY_NUMBER'] = range(1, len(weekly_data) +1)
+        fig = go.Figure(data=[
+            go.Bar(
+                x=list(weekly_data['WEEKLY_NUMBER']),  # Convert range to list
+                y=merged_data['NEW_PG'],
+                marker_color=[color for color in merged_data['color']],
+            ),
+        ])
+        fig.update_layout(
+            xaxis_title='Week',
+            yaxis_title='Total Actual',
+            title="Weekly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
     with cl3:   # ****** Monthly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Monthly Trend</center>""",unsafe_allow_html=True)
         monthly_data = pg_data.groupby(pg_data['DATE'].dt.to_period('M'))[['ACTUAL MANPOWER', 'PLANNED MANPOWER']].sum()
-        monthly_target = pg_target.groupby(pg_target['DATE'].dt.to_period('M'))['VALUE'].sum()
+        monthly_target = pg_target.groupby(pg_target['DATE'].dt.to_period('M'))['VALUE'].sum() / total_days_in_month
         monthly_data['NEW_PG'] = round(((monthly_data['PLANNED MANPOWER'] - monthly_data['ACTUAL MANPOWER'])/monthly_data['PLANNED MANPOWER'])*100, 2)
+        merged_data = pd.merge(monthly_data, monthly_target, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['NEW_PG'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
         monthly_data.index = monthly_data.index.strftime('%b')
-        monthly_color = []
-        for i in monthly_data.index:
-            target_value = monthly_target.get(i, 0)
-            data_value = monthly_data.loc[i, 'NEW_PG']
-            if data_value > target_value:
-                monthly_color.append("#fa2323")  # Data exceed target
-            else:
-                monthly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=monthly_data['NEW_PG'], marker_color=monthly_color)])
+        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=merged_data['NEW_PG'], marker_color=[color for color in merged_data['color']],)])
         # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Months', yaxis_title='Personal Gap')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
+        fig.update_layout(
+            xaxis_title='Month',
+            yaxis_title='Total Actual',
+            title="Monthly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
 def visits():
     visit = fetch_month_data("VISITS OR AUDITS")
@@ -4677,6 +4613,19 @@ def visits():
     pass
 
 def attendance_sheet():
+    employees = [
+        { 'date': ['2023-11-19','2023-11-20','2023-11-21','2023-11-22'], 'color': ['red', 'blue', 'yellow', 'green'] },
+        { 'date': ['2023-11-20','2023-11-21','2023-11-22','2023-11-23'], 'color': ['red', 'blue', 'yellow', 'green'] },
+        { 'date': ['2023-11-20','2023-11-21','2023-11-22','2023-11-23'], 'color': ['red', 'blue', 'yellow', 'green'] },
+        { 'date': ['2023-11-20','2023-11-21','2023-11-22','2023-11-23'], 'color': ['red', 'blue', 'yellow', 'green'] },
+        { 'date': ['2023-11-20','2023-11-21','2023-11-22','2023-11-23'], 'color': ['red', 'blue', 'yellow', 'green'] },
+        { 'date': ['2023-11-20','2023-11-21','2023-11-22','2023-11-23'], 'color': ['red', 'blue', 'yellow', 'green'] },
+        { 'date': ['2023-11-20','2023-11-21','2023-11-22','2023-11-23'], 'color': ['red', 'blue', 'yellow', 'green'] },
+        { 'date': ['2023-11-20','2023-11-21','2023-11-22','2023-11-23'], 'color': ['red', 'blue', 'yellow', 'green'] }
+    ]
+    person_1 = employees[0]
+    person_2 = employees[1]
+    # st.dataframe(person_2['color'])
     st.markdown(f"""
         <style>
             th {{
@@ -4832,6 +4781,9 @@ def psp_competency():
     current_month = pd.Timestamp('now').to_period('M')
     current_month_data = fetch_month_data("PROBLEM SOLVING COMPETENCY")
     today_date = datetime.datetime.now()
+    days = datetime.date.today()
+    # Get the total number of days in the current month
+    total_days_in_month = calendar.monthrange(days.year, days.month)[1]
     current_week_number = today_date.strftime('%U')
     desired_data = current_month_data[current_month_data['DATE'].dt.strftime('%U') == current_week_number]
     my_data = []
@@ -4862,6 +4814,7 @@ def psp_competency():
             "psp_competency": "N/A"
         }
         my_data.append(dummy_psc)
+        max_data = max_data - 1
     st.markdown(f"""
         <style>
             .category{{border:1px solid black; width:12%; padding-top:1rem; float:left; height: 3rem; text-align:center; font-weight:bold;}}
@@ -4921,73 +4874,61 @@ def psp_competency():
 
     cl1,cl2,cl3 = st.columns((1,1,1))
     with cl1:   # ****** Daily_Data ****** #
-        st.markdown("")
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.7rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
-        merged_data = pd.merge(desired_data, monthly_target, on='DATE', how='outer')
-        # Add a column for comparison
-        merged_data['color'] = ["#fa2323" if x >= y else "#5fe650" for x, y in zip(merged_data['PSP COMPETENCY'], merged_data['VALUE'])]
-        daily_data = desired_data.groupby(desired_data['DATE'].dt.to_period('D')).size()
-        daily_data.index = daily_data.index.strftime('%b %d')
-        daily_color = []
-        for i in daily_data.index:
-            # print(i)
-            # Format the date in the same way as the monthly_target data for comparison
-            formatted_date = datetime.datetime.strptime(i, '%b %d').strftime('%b %d')
-            # Find the corresponding row in monthly_target with the same formatted date
-            matching_target = monthly_target[monthly_target['DATE'].dt.strftime('%b %d') == formatted_date]
-            if not matching_target.empty:
-                target_value = matching_target["VALUE"].values[0]
-                # print(daily_data[i], target_value)
-                if daily_data[i] < target_value:
-                    daily_color.append("#fa2323")  # Complaints exceed target
-                else:
-                    daily_color.append("#5fe650")  # Complaints meet or are below target
-            else:
-                daily_color.append("#5fe650")
-                
-        fig = go.Figure(data=[go.Bar(x=daily_data.index, y=desired_data['PSP COMPETENCY'], marker_color=daily_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Days', yaxis_title='PSP Competency %')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
-        # st.bar_chart(daily_data, color=daily_color, height=387)
+        desired_data['Day'] = desired_data['DATE'].dt.strftime('%a')    #Day format in weekdays
+        desired_trgt = monthly_target[monthly_target['DATE'].dt.strftime('%U') == current_week_number] #Target data of current week
+        merged_data = pd.merge(desired_data, desired_trgt, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['PSP COMPETENCY'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        # st.write(merged_data)
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(merged_data['Day'], merged_data['PSP COMPETENCY'], merged_data['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='BD Time', line=dict(color=my_color, width=30), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=merged_data['Day'], y=merged_data['VALUE'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Actual')
+        st.plotly_chart(fig, use_container_width=True)
     with cl2:   # ****** Weekly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
-        weekly_data = current_month_data.groupby(current_month_data['DATE'].dt.to_period('W')).size()
-        weekly_target = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
-        weekly_data.index = range(1, len(weekly_data) + 1)
-        weekly_color = []
-        for i in weekly_data.index:
-            target_value = weekly_target.get(i, 0)
-            data_value = weekly_data.get(i, 0)
-            if data_value < target_value:
-                weekly_color.append("#fa2323")  # Data exceed target
-            else:
-                weekly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=weekly_data.index, y=weekly_data, marker_color=weekly_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Weeks', yaxis_title='Complaints')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
+        P_raised = current_month_data.groupby(current_month_data['DATE'].dt.to_period('W'))['PROBLEM RAISED'].sum()
+        P_solved = current_month_data.groupby(current_month_data['DATE'].dt.to_period('W'))['PROBLEM SOLVED'].sum()
+        weekly_trgt = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum() / 6
+        weekly_data = round((P_solved / P_raised) * 100, 2)
+        weekly_data = pd.DataFrame({'psp_data': weekly_data})
+        merged_data = pd.merge(weekly_data, weekly_trgt, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['psp_data'] < merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        weekly_data.index = weekly_data.index.astype(str)
+        weekly_data['WEEKLY_NUMBER'] = range(1, len(weekly_data) +1)
+        fig = go.Figure(data=[
+            go.Bar(
+                x=list(weekly_data['WEEKLY_NUMBER']),  # Convert range to list
+                y=merged_data['psp_data'],
+                marker_color=[color for color in merged_data['color']],
+            ),
+        ])
+        fig.update_layout(
+            xaxis_title='Week',
+            yaxis_title='Total Actual',
+            title="Weekly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
     with cl3:   # ****** Monthly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Monthly Trend</center>""",unsafe_allow_html=True)
-        monthly_data = df.groupby(df['DATE'].dt.to_period('M')).size()
-        monthly_target = psc_target.groupby(psc_target['DATE'].dt.to_period('M'))['VALUE'].sum()
+        P_raised = df.groupby(df['DATE'].dt.to_period('M'))['PROBLEM RAISED'].sum()
+        P_solved = df.groupby(df['DATE'].dt.to_period('M'))['PROBLEM SOLVED'].sum()
+        weekly_trgt = monthly_target.groupby(monthly_target['DATE'].dt.to_period('M'))['VALUE'].sum() / total_days_in_month
+        monthly_data = round((P_solved / P_raised) * 100, 2)
+        monthly_data = pd.DataFrame({'psp_data': monthly_data})
+        merged_data = pd.merge(monthly_data, weekly_trgt, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['psp_data'] < merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
         monthly_data.index = monthly_data.index.strftime('%b')
-        monthly_color = []
-        for i in monthly_data.index:
-            target_value = monthly_target.get(i, 0)
-            data_value = monthly_data.get(i, 0)
-            if data_value < target_value:
-                monthly_color.append("#fa2323")  # Data exceed target
-            else:
-                monthly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=monthly_data, marker_color=monthly_color)])
+        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=merged_data['psp_data'], marker_color=[color for color in merged_data['color']],)])
         # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Months', yaxis_title='Complaints')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
-        # st.bar_chart(monthly_data, color="#ff0000", height=363)
+        fig.update_layout(
+            xaxis_title='Month',
+            yaxis_title='Total Actual',
+            title="Monthly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        pass
     pass
 
 #************************** PSP End **************************#
