@@ -3608,14 +3608,14 @@ def plant_supplier_ppm():   # ******** Plant PPM & Supplier PPM ******** #
     filter_plant_data = ppm_data[ppm_data["CATEGORY"] == "PLANT PPM"]
     filter_supplier_data = ppm_data[ppm_data["CATEGORY"] == "SUPPLIER PPM"]
     # st.write(filter_supplier_data)
-    total_plant_target = filter_plant_data['TARGET'].sum()    # Sum all the values in the "Value" column
+    total_plant_target = round(filter_plant_data['TARGET'].mean(), 2)    # Sum all the values in the "Value" column
     total_plant_quantity = filter_plant_data['QUANTITY'].sum()
     total_plant_rejection = filter_plant_data['REJECTION'].sum()
     if total_plant_rejection == 0 and total_plant_quantity == 0:
         total_plant_actual = 0
     else:
         total_plant_actual = round(((total_plant_rejection / total_plant_quantity) * 1000000), 2)
-    total_supplier_target = filter_supplier_data['TARGET'].sum()
+    total_supplier_target = round(filter_supplier_data['TARGET'].mean(), 2)
     total_supplier_quantity = filter_supplier_data['QUANTITY'].sum()
     total_supplier_rejection = filter_supplier_data['REJECTION'].sum()
     if total_plant_rejection == 0 and total_plant_quantity == 0:
@@ -3801,7 +3801,7 @@ def plant_supplier_ppm():   # ******** Plant PPM & Supplier PPM ******** #
 
     with col2:  # ****** Weekly_Data ****** #
         hp_data = hp_data[hp_data["CATEGORY"] == "PLANT PPM"]
-        weekly_data = hp_data.groupby(hp_data['DATE'].dt.to_period('W'))[['ACTUAL', 'TARGET']].sum()
+        weekly_data = hp_data.groupby(hp_data['DATE'].dt.to_period('W'))[['ACTUAL', 'TARGET']].sum() / 7
         weekly_data['COLOR'] = np.where(weekly_data['ACTUAL'] >= weekly_data['TARGET'], 'green', 'red')
         weekly_data.index = weekly_data.index.astype(str)
         weekly_data['WEEKLY_NUMBER'] = range(1, len(weekly_data) +1)
@@ -3831,7 +3831,7 @@ def plant_supplier_ppm():   # ******** Plant PPM & Supplier PPM ******** #
     
     with col3:  # ****** Monthly_Data ****** #
         hp_data_month = d_data[d_data['CATEGORY'] == 'PLANT PPM']
-        monthly_data = hp_data_month.groupby(hp_data_month['DATE'].dt.to_period('M'))[['TARGET', 'ACTUAL']].sum()
+        monthly_data = hp_data_month.groupby(hp_data_month['DATE'].dt.to_period('M'))[['TARGET', 'ACTUAL']].sum() / 30
         monthly_data['COLOR'] = np.where(monthly_data['ACTUAL'] >= monthly_data['TARGET'], 'green', 'red')
         monthly_data.index = monthly_data.index.strftime('%b')
         colors = {'green': '#5fe650', 'red': '#fa2323'}
@@ -4413,13 +4413,21 @@ def S_letter():
             # last_event_date = datetime.datetime.strptime(last_event_date, "%Y-%m-%d")
             today = datetime.datetime.today()
             days_since_last_event = (today - last_event_date).days
-        st.markdown(
-                f"""<center style = "height:2rem;">
-                <br>
-                <p style = "font-size:13px;"><b>{days_since_last_event}</b> days without any recordable lost time injury.</p>
-                </center>
-                """, unsafe_allow_html=True
-            )
+            st.markdown(
+                    f"""<center style = "height:2rem;">
+                    <br>
+                    <p style = "font-size:13px;"><b>{days_since_last_event}</b> days without any recordable lost time injury.</p>
+                    </center>
+                    """, unsafe_allow_html=True
+                )
+        else:
+            st.markdown(
+                    f"""<center style = "height:2rem;">
+                    <br>
+                    <p style = "font-size:13px;"><b>0</b> days without any recordable lost time injury.</p>
+                    </center>
+                    """, unsafe_allow_html=True
+                )
 
 def Q_letter():
     # Parse the existing SVG file
@@ -4479,9 +4487,13 @@ def Q_letter():
             # last_event_date = datetime.datetime.strptime(last_event_date, "%Y-%m-%d")
             today = datetime.datetime.today()
             days_since_last_event = (today - last_event_date).days
-        st.markdown(f"""
-                       <center style = "height:2rem;"> <br> <p style = "font-size:13px;"><b>{days_since_last_event}</b> days since customer complaint.</p> </center>
-                   """, unsafe_allow_html=True)
+            st.markdown(f"""
+                        <center style = "height:2rem;"> <br> <p style = "font-size:13px;"><b>{days_since_last_event}</b> days since customer complaint.</p> </center>
+                    """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                        <center style = "height:2rem;"> <br> <p style = "font-size:13px;"><b>0</b> days since customer complaint.</p> </center>
+                    """, unsafe_allow_html=True)
 
 def D_letter():
     # Parse the existing SVG file
@@ -4546,13 +4558,19 @@ def D_letter():
             # last_event_date = datetime.datetime.strptime(last_event_date, "%Y-%m-%d")
             today = datetime.datetime.today()
             days_since_last_event = (today - last_event_date).days
-        st.markdown(f"""
-                <center style = "height:2rem;">
-                    <br>
-                    <p style = "font-size:13px;"><b>{days_since_last_event}</b> days since OE delivery failure. </p>
-                </center>
-                """, unsafe_allow_html=True
-            )
+            st.markdown(f"""
+                    <center style = "height:2rem;">
+                        <br>
+                        <p style = "font-size:13px;"><b>{days_since_last_event}</b> days since OE delivery failure. </p>
+                    </center>
+                    """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                    <center style = "height:2rem;">
+                        <br>
+                        <p style = "font-size:13px;"><b>0</b> days since OE delivery failure. </p>
+                    </center>
+                    """, unsafe_allow_html=True)
 
 def C_letter():
     # Parse the existing SVG file
@@ -4617,12 +4635,19 @@ def C_letter():
             # last_event_date = datetime.datetime.strptime(last_event_date, "%Y-%m-%d")
             today = datetime.datetime.today()
             days_since_last_event = (today - last_event_date).days
-        st.markdown(f"""
-                    <center style = "height:2rem;">
-                    <br>
-               <p style = "font-size:13px;"><b>{days_since_last_event}</b> days since productivity target missed. </p>
-                </center>
-                """, unsafe_allow_html=True)
+            st.markdown(f"""
+                        <center style = "height:2rem;">
+                        <br>
+                <p style = "font-size:13px;"><b>{days_since_last_event}</b> days since productivity target missed. </p>
+                    </center>
+                    """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                        <center style = "height:2rem;">
+                        <br>
+                <p style = "font-size:13px;"><b>0</b> days since productivity target missed. </p>
+                    </center>
+                    """, unsafe_allow_html=True)
 
 #************************** Letters End **************************#
 

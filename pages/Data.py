@@ -634,7 +634,7 @@ if authentication_status:
                             col1, col2, col3, col4, col5, col6, col7 = st.columns((1,1,1,1,1,1,1))
                             for i in range(0, no_event):
                                 with col1:
-                                    st.selectbox("Category", options=['Recordable Loss Time Injury', 'Recordable Accident', 'First Aid', 'Near MIS', 'Fire'], key=f"category{i}")
+                                    st.selectbox("Category", options=['Recordable Loss Time Injury', 'Recordable Accident', 'First Aid', 'Near MIS', 'Fire', 'No Incident', 'Plant Off'], key=f"category{i}")
                                 with col2:
                                     st.text_input("Observations", key=f"event{i}")
                                 with col3:
@@ -676,7 +676,7 @@ if authentication_status:
                         time_stamp = st.text_input("Enter The Time Stamp To Delete")
                         button = st.button("Delete Entry")
                         if button:
-                            cur.execute(f"DELETE FROM 'INCIDENCES DETAILS' WHERE Time_Stamp = '{time_stamp}'")
+                            cur.execute(f"DELETE FROM 'INCIDENCES DETAILS' WHERE DATE = '{time_stamp}'")
                             conn.commit()
                             st.success("Success ")
                             st.rerun()

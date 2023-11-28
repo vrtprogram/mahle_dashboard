@@ -17,23 +17,35 @@ layout("this page only for testing")
 
 
 def main():
-    st.subheader("Get Specipic Data!")
-    my_data = 0
-    c1,c2,c3 = st.columns((1,1,1))
-    with c1:
-        starting_date = st.date_input("Select Start Date")
-    with c2:
-        end_date = st.date_input("Select End Date")
-    with c3:
-        category = st.selectbox("Category", options=[' ','INCIDENCES DETAILS', 'UNSAFE PRACTICES TRACKING', 'PRODUCTIVITY AND OEE', 'MACHINE BREAKDOWN TIME', 'OTIF_CC PDI'])
-    if category == ' ':
-        pass
-    else:
-        my_data = data_filter_between(category, starting_date, end_date)
-    if not my_data.empty:
-        st.table(my_data)
-    else:
-        pass
+
+    with sqlite3.connect("database/main_database.db") as conn:
+        # query = f"SELECT * FROM \"{table_name}\";"
+        # dataframe = pd.read_sql_query(query, conn)
+        cur = conn.cursor()
+        cur.execute(f"DELETE FROM 'PLANT PPM & SUPPLIER PPM' WHERE DATE <= 2023-11-24 00:00:00")
+        # dataframe['DATE'] = pd.to_datetime(dataframe['DATE'])
+        # current_year = pd.Timestamp('now').to_period('Y')
+        # # current_month = pd.Timestamp('now').to_period('M')
+        # dataframe = dataframe[((dataframe['DATE'].dt.to_period('Y')) == current_year)]
+        # dataframe['DATE'] = dataframe['DATE'].dt.strftime('%Y-%m-%d')
+
+    # st.subheader("Get Specipic Data!")
+    # my_data = 0
+    # c1,c2,c3 = st.columns((1,1,1))
+    # with c1:
+    #     starting_date = st.date_input("Select Start Date")
+    # with c2:
+    #     end_date = st.date_input("Select End Date")
+    # with c3:
+    #     category = st.selectbox("Category", options=[' ','INCIDENCES DETAILS', 'UNSAFE PRACTICES TRACKING', 'PRODUCTIVITY AND OEE', 'MACHINE BREAKDOWN TIME', 'OTIF_CC PDI'])
+    # if category == ' ':
+    #     pass
+    # else:
+    #     my_data = data_filter_between(category, starting_date, end_date)
+    # if not my_data.empty:
+    #     st.table(my_data)
+    # else:
+    #     pass
 
     # df = fetch_data("UNSAFE PRACTICES TRACKING")
     # df['DATE'] = pd.to_datetime(df['DATE'])
