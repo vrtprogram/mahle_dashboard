@@ -50,15 +50,20 @@ def  layout(heading):
 def current_updates():
     d_col1, d_col2=st.columns((1,0.3))
     with d_col1:
-        st.link_button("Home","/App")
+        # st.link_button("Home","/App")
+        pass
     with d_col2:
+        st.markdown("""<style>
+                        .st-emotion-cache-vft1hk:nth-child(0){}
+                    </style>""", unsafe_allow_html=True)
         global on_date
         on_date = st.date_input(":green[Select Date:]")
 
 def current_date():
     d_col1, d_col2=st.columns((1,0.3))
     with d_col1:
-        st.link_button("Home","/App")
+        # st.link_button("Home","/App")
+        pass
     with d_col2:
         date = datetime.datetime.now().date().strftime("%Y-%m-%d")
         st.markdown(f"""<center style='padding-top:1rem;'><div style=' width:75%;background-color:lightgray;'>Date: {date}</center></div>""",unsafe_allow_html=True)
@@ -133,7 +138,14 @@ def safety_ftd():
                 if row["CATEGORY"] == "Fire":
                     new_dict["Fire"] +=1
 
-        st.subheader(f"Status as on: {on_date}", divider="gray")
+        # st.subheader(f"Status as on: {on_date}", divider="gray")
+        st.markdown(f"""
+            <div>
+                <h3 style='position:absolute; bottom:0rem;'>Status as on: {on_date}</h3>
+            </div>
+            <hr>
+        """, unsafe_allow_html=True)
+        
         st.markdown(
             """
             <style>
@@ -221,39 +233,108 @@ def safety_ftd():
             elif colors["fire_mtd"] == True: color = "blue"
             else: color = "green"
         col1,col2=st.columns((1,1.7))
-        with col1:  # Dynamic S letter
+        with col1:  #******** Dynamic S letter ********#
             tree = ET.parse('resources\S.svg')
             root = tree.getroot()
-            for i in range(1,32):
-                if i<10:
+            current_date = datetime.date.today()
+            row_data = fetch_month_data("INCIDENCES DETAILS")
+            first_day_of_month = current_date.replace(day=1)
+            days_to_add = 0
+            for i in range(1, 32):
+                colors = {
+                        "record_lost_time": False, "record_accident": False,
+                        "first_aid": False, "near_mis": False, "fire_mtd": False
+                    }
+                if i < 10:
                     target_element = root.find(f".//*[@id='untitled-u-day{i}']")
                 else:
                     target_element = root.find(f".//*[@id='untitled-u-day{i}_']")
-                # Change the color of the element
-                if i == on_date.day:
-                    target_element.set('fill', color)
+                new_date = first_day_of_month + datetime.timedelta(days=days_to_add)
+                days_to_add += 1
+                df = row_data[row_data["DATE"] == f"{new_date}"]
+                if len(row_data) == 0:
+                    if new_date.weekday() == 6:
+                        target_element.set('fill', 'blue')
+                        tree.write('s_out.svg')
+                    else:
+                        target_element.set('fill', '#d2dbed')
+                        tree.write('s_out.svg')
+                elif new_date.weekday() == 6:
+                        target_element.set('fill', 'blue')
+                        tree.write('s_out.svg')
                 else:
-                    target_element.set('fill', 'gray')
-                # Save the modified SVG file
-                tree.write('daily_s.svg')
+                    for index, row in df.iterrows():
+                        if row["CATEGORY"] == "Recordable Loss Time Injury":
+                            colors["record_lost_time"] = True
+                        if row["CATEGORY"] == "Recordable Accident":
+                            colors["record_accident"] = True
+                        if row["CATEGORY"] == "First Aid":
+                            colors["first_aid"] = True
+                        if row["CATEGORY"] == "Near MIS":
+                            colors["near_mis"] = True
+                        if row["CATEGORY"] == "Fire":
+                            colors["fire_mtd"] = True
+                        if new_date.weekday() == 6: color = "blue"
+                        else:
+                            if colors["record_lost_time"] == True: color = "red"
+                            elif colors["record_accident"] == True: color = "tomato"
+                            elif colors["first_aid"] == True: color = "orange"
+                            elif colors["near_mis"] == True: color = "yellow"
+                            elif colors["fire_mtd"] == True: color = "blue"
+                            else: color = "green"
+                        target_element.set('fill', color)
+                        tree.write('daily_s.svg')
             # Display the modified SVG using Streamlit
             with open('daily_s.svg', 'r') as f:
                 svg = f.read()
                 b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
-                html = r'<img src="data:image/svg+xml;base64,%s" style="height:17rem;"/>' % b64
+                html = r'<img src="data:image/svg+xml;base64,%s" style="height:24rem;"/>' % b64
                 st.write(f"""
                     <style>
                         .daily_d{{ font-size:1rem; margin:0rem; position:absolute; font-weight:bold;}}
                     </style>
-                    <div>{html}
-                        <p class="daily_d" style='left:17rem; top:2rem; color:black;'>LEGEND:</p>
-                        <p class="daily_d" style='left:17rem; top:4rem; color:red;'>RECORDABLE LOST TIME ENJURY</p>
-                        <p class="daily_d" style='left:17rem; top:8rem; color:tomato;'>RECORDABLE ACCIDENT</p>
-                        <p class="daily_d" style='left:17rem; top:10rem; color:orange;'>FIRST AID</p>
-                        <p class="daily_d" style='left:17rem; top:12rem; color:yellow;'>NEAR MISS</p>
-                        <p class="daily_d" style='left:17rem; top:14rem; color:blue;'>FIRE</p>
-                        <p class="daily_d" style='left:17rem; top:16rem; color:green;'>NO INCIDENT</p>
+                    <div style='position:relative; right:3rem; width:110%; top:2rem;'>{html}
+                        <p class="daily_d" style='left:21rem; top:4rem; color:black;'>LEGEND:</p>
+                        <p class="daily_d" style='left:21rem; top:6rem; color:red;'>RECORDABLE LOST TIME ENJURY</p>
+                        <p class="daily_d" style='left:21rem; top:10rem; color:tomato;'>RECORDABLE ACCIDENT</p>
+                        <p class="daily_d" style='left:21rem; top:12rem; color:orange;'>FIRST AID</p>
+                        <p class="daily_d" style='left:21rem; top:14rem; color:yellow;'>NEAR MISS</p>
+                        <p class="daily_d" style='left:21rem; top:16rem; color:blue;'>FIRE</p>
+                        <p class="daily_d" style='left:21rem; top:18rem; color:green;'>NO INCIDENT</p>
                     </div>""", unsafe_allow_html=True)
+
+            # tree = ET.parse('resources\S.svg')
+            # root = tree.getroot()
+            # for i in range(1,32):
+            #     if i<10:
+            #         target_element = root.find(f".//*[@id='untitled-u-day{i}']")
+            #     else:
+            #         target_element = root.find(f".//*[@id='untitled-u-day{i}_']")
+            #     # Change the color of the element
+            #     if i == on_date.day:
+            #         target_element.set('fill', color)
+            #     else:
+            #         target_element.set('fill', 'gray')
+            #     # Save the modified SVG file
+            #     tree.write('daily_s.svg')
+            # # Display the modified SVG using Streamlit
+            # with open('daily_s.svg', 'r') as f:
+            #     svg = f.read()
+            #     b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+            #     html = r'<img src="data:image/svg+xml;base64,%s" style="height:17rem;"/>' % b64
+            #     st.write(f"""
+            #         <style>
+            #             .daily_d{{ font-size:1rem; margin:0rem; position:absolute; font-weight:bold;}}
+            #         </style>
+            #         <div>{html}
+            #             <p class="daily_d" style='left:17rem; top:2rem; color:black;'>LEGEND:</p>
+            #             <p class="daily_d" style='left:17rem; top:4rem; color:red;'>RECORDABLE LOST TIME ENJURY</p>
+            #             <p class="daily_d" style='left:17rem; top:8rem; color:tomato;'>RECORDABLE ACCIDENT</p>
+            #             <p class="daily_d" style='left:17rem; top:10rem; color:orange;'>FIRST AID</p>
+            #             <p class="daily_d" style='left:17rem; top:12rem; color:yellow;'>NEAR MISS</p>
+            #             <p class="daily_d" style='left:17rem; top:14rem; color:blue;'>FIRE</p>
+            #             <p class="daily_d" style='left:17rem; top:16rem; color:green;'>NO INCIDENT</p>
+            #         </div>""", unsafe_allow_html=True)
         with col2:
             st.markdown(f"""
                         <style>
@@ -394,10 +475,10 @@ def unsafe_incident_tracking():
     df = fetch_data("INCIDENCES DETAILS")
     df['DATE'] = pd.to_datetime(df['DATE'])
     current_month = pd.Timestamp('now').to_period('M')
-    incident_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
-    incident_target = fetch_data("SET DAILY TARGET")
-    incident_target = incident_target[incident_target["CATEGORY"] == 'Incident details']
-    monthly_target = incident_target[((incident_target["DATE"].dt.to_period("M")) == current_month)]
+    month_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
+    target_data = fetch_data("SET DAILY TARGET")
+    target_data = target_data[target_data["CATEGORY"] == 'Incident details']
+    monthly_target = target_data[((target_data["DATE"].dt.to_period("M")) == current_month)]
     today_date = datetime.datetime.now()
     current_week_number = today_date.strftime('%U')
     Record_lost_time = 0
@@ -405,7 +486,7 @@ def unsafe_incident_tracking():
     First_aid = 0
     Near_mis = 0
     Fire_mtd = 0
-    for index, row in incident_data.iterrows():
+    for index, row in month_data.iterrows():
         if row["CATEGORY"] == "Recordable Loss Time Injury":
             Record_lost_time += 1
         if row["CATEGORY"] == "Recordable Accident":
@@ -436,73 +517,64 @@ def unsafe_incident_tracking():
 
     cl1,cl2,cl3 = st.columns((1,1,1))
     with cl1:   # ****** Daily_Data ****** #
-        st.markdown("")
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.7rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
-        desired_data = incident_data[incident_data['DATE'].dt.strftime('%U') == current_week_number]
-        daily_data = desired_data.groupby(desired_data['DATE'].dt.to_period('D')).size()
-        daily_data.index = daily_data.index.strftime('%b %d')
-        daily_color = []
-        for i in daily_data.index:
-            # Format the date in the same way as the monthly_target data for comparison
-            formatted_date = datetime.datetime.strptime(i, '%b %d').strftime('%b %d')
-            # Find the corresponding row in monthly_target with the same formatted date
-            matching_target = monthly_target[monthly_target['DATE'].dt.strftime('%b %d') == formatted_date]
-            # st.write(matching_target)
-            if not matching_target.empty:
-                target_value = matching_target["VALUE"].values[0]
-                if daily_data[i] > target_value:
-                    daily_color.append("#fa2323")  # Complaints exceed target
-                else:
-                    daily_color.append("#5fe650")  # Complaints meet or are below target
-            else:
-                daily_color.append("#5fe650")
-                
-        fig = go.Figure(data=[go.Bar(x=daily_data.index, y=daily_data, marker_color=daily_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Days', yaxis_title='Incident')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
-
+        desired_data = month_data[month_data['DATE'].dt.strftime('%U') == current_week_number]
+        daily_data_count = desired_data.groupby(desired_data['DATE'].dt.to_period('D')).size().reset_index(name='data')
+        desired_data['Day'] = desired_data['DATE'].dt.strftime('%a')  # Day format in weekdays
+        unique_desired_data = desired_data.drop_duplicates(subset='Day', keep='first')
+        desired_trgt = monthly_target[monthly_target['DATE'].dt.strftime('%U') == current_week_number]
+        desired_trgt['DATE'] = desired_trgt['DATE'].dt.strftime("%Y-%m-%d")
+        daily_data_count['DATE'] = daily_data_count['DATE'].dt.strftime("%Y-%m-%d") # Convert 'DATE' to a string in both DataFrames for merging
+        merged_data = pd.merge(daily_data_count, desired_trgt, on='DATE')  # Merge on the 'DATE' column
+        merged_data['color'] = np.where(merged_data['data'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(unique_desired_data['Day'], merged_data['data'], merged_data['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='count', line=dict(color=my_color, width=30), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=unique_desired_data['Day'], y=merged_data['VALUE'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Actual')
+        st.plotly_chart(fig, use_container_width=True)
     with cl2:   # ****** Weekly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
-        weekly_data = incident_data.groupby(incident_data['DATE'].dt.to_period('W')).size()
-        weekly_target = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
-        weekly_data.index = range(1, len(weekly_data) + 1)
-        weekly_color = []
-        for i in weekly_data.index:
-            target_value = weekly_target.get(i, 0)
-            data_value = weekly_data.get(i, 0)
-            if data_value > target_value:
-                weekly_color.append("#fa2323")  # Data exceed target
-            else:
-                weekly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=weekly_data.index, y=weekly_data, marker_color=weekly_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Weeks', yaxis_title='Incident')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
-
+        weekly_data = month_data.groupby(month_data['DATE'].dt.to_period('W')).size()
+        weekly_trgt = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
+        weekly_data = pd.DataFrame({'my_data': weekly_data})
+        merged_data = pd.merge(weekly_data, weekly_trgt, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['my_data'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        weekly_data.index = weekly_data.index.astype(str)
+        weekly_data['WEEKLY_NUMBER'] = range(1, len(weekly_data) +1)
+        fig = go.Figure(data=[
+            go.Bar(
+                x=list(weekly_data['WEEKLY_NUMBER']),  # Convert range to list
+                y=merged_data['my_data'],
+                marker_color=[color for color in merged_data['color']],
+            ),
+        ])
+        fig.update_layout(
+            xaxis_title='Week',
+            yaxis_title='Total Actual',
+            title="Weekly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
     with cl3:   # ****** Monthly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Monthly Trend</center>""",unsafe_allow_html=True)
         monthly_data = df.groupby(df['DATE'].dt.to_period('M')).size()
-        monthly_target = incident_target.groupby(incident_target['DATE'].dt.to_period('M'))['VALUE'].sum()
+        monthly_target = target_data.groupby(target_data['DATE'].dt.to_period('M'))['VALUE'].sum()
+        monthly_data = pd.DataFrame({'my_data': monthly_data})
+        merged_data = pd.merge(monthly_data, monthly_target, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['my_data'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
         monthly_data.index = monthly_data.index.strftime('%b')
-        monthly_color = []
-        for i in monthly_data.index:
-            target_value = monthly_target.get(i, 0)
-            data_value = monthly_data.get(i, 0)
-            if data_value > target_value:
-                monthly_color.append("#fa2323")  # Data exceed target
-            else:
-                monthly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=monthly_data, marker_color=monthly_color)])
+        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=merged_data['my_data'], marker_color=[color for color in merged_data['color']],)])
         # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Months', yaxis_title='Incident')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
+        fig.update_layout(
+            xaxis_title='Month',
+            yaxis_title='Total Actual',
+            title="Monthly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        pass
     
     # **********************
-    current_month_data = incident_data
+    current_month_data = month_data
     st.subheader("Get data acording to the status")
     col1,col2,col3,col4 = st.tabs(['Clear',':red[Open Status]',':green[Close Status]',':orange[Inprocessing]'])
     with col1:
@@ -521,103 +593,95 @@ def unsafe_practice_tracking():
     df = fetch_data("UNSAFE PRACTICES TRACKING")
     df['DATE'] = pd.to_datetime(df['DATE'])
     current_month = pd.Timestamp('now').to_period('M')
-    incident_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
-    incident_target = fetch_data("SET DAILY TARGET")
-    incident_target = incident_target[incident_target["CATEGORY"] == 'Incident Practices']
-    monthly_target = incident_target[((incident_target["DATE"].dt.to_period("M")) == current_month)]
+    month_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
+    target_data = fetch_data("SET DAILY TARGET")
+    target_data = target_data[target_data["CATEGORY"] == 'Incident Practices']
+    monthly_target = target_data[((target_data["DATE"].dt.to_period("M")) == current_month)]
     today_date = datetime.datetime.now()
     current_week_number = today_date.strftime('%U')
 
     closed = 0
-    for item in incident_data['STATUS']:
-        if[item] == 'Closed':
+    for item in month_data['STATUS']:
+        if item == 'Closed':
             closed +=1
     col_indices_1, col_indices_2, col_indices_3 = st.columns((0.5, 2, 0.5))
     with col_indices_2:
         col_indices_A, col_indices_B, col_indices_C = st.columns((2, 2, 2))
         with col_indices_A:
             st.markdown(f"""<div class="custom" style='background-color:#f53527; text-align:center; font-size:1rem; border:1px solid black; border-radius:25px; font-weight:bold; padding:10px;'>Unsafe Practices
-                        <h3 style='color:white;'>{len(incident_data)}</h3></div>""",unsafe_allow_html=True)
+                        <h3 style='color:white;'>{len(month_data)}</h3></div>""",unsafe_allow_html=True)
             # st.metric(":blue[Unsafe Practices]", len(df))
         with col_indices_B:
             st.markdown(f"""<div class="custom" style='background-color:#4be373; text-align:center; font-size:1rem; border:1px solid black; border-radius:25px; font-weight:bold; padding:10px;'>Unsafe Practices Closed
                         <h3 style='color:white;'>{closed}</h3></div>""",unsafe_allow_html=True)
             # st.metric("Unsafe Practices Closed", closed)
         with col_indices_C:
-            if len(incident_data) == 0:
+            if len(month_data) == 0:
                 closer_data = 0 
             else:
-                closer_data = round((closed / len(incident_data))*100)
+                closer_data = round((closed / len(month_data))*100)
             st.markdown(f"""<div class="custom" style='background-color:#4be373; text-align:center; font-size:1rem; border:1px solid black; border-radius:25px; font-weight:bold; padding:10px;'>Closure Percentage
-                        <h3 style='color:white;'>{closer_data}</h3></div>""",unsafe_allow_html=True)
+                        <h3 style='color:white;'>{closer_data}%</h3></div>""",unsafe_allow_html=True)
 
     cl1,cl2,cl3 = st.columns((1,1,1))
     with cl1:   # ****** Daily_Data ****** #
-        st.markdown("")
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.7rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
-        desired_data = incident_data[incident_data['DATE'].dt.strftime('%U') == current_week_number]
-        daily_data = desired_data.groupby(desired_data['DATE'].dt.to_period('D')).size()
-        daily_data.index = daily_data.index.strftime('%b %d')
-        daily_color = []
-        for i in daily_data.index:
-            # Format the date in the same way as the monthly_target data for comparison
-            formatted_date = datetime.datetime.strptime(i, '%b %d').strftime('%b %d')
-            # Find the corresponding row in monthly_target with the same formatted date
-            matching_target = monthly_target[monthly_target['DATE'].dt.strftime('%b %d') == formatted_date]
-            if not matching_target.empty:
-                target_value = matching_target["VALUE"].values[0]
-                if daily_data[i] > target_value:
-                    daily_color.append("#fa2323")  # Complaints exceed target
-                else:
-                    daily_color.append("#5fe650")  # Complaints meet or are below target
-            else:
-                daily_color.append("#5fe650")
-                
-        fig = go.Figure(data=[go.Bar(x=daily_data.index, y=daily_data, marker_color=daily_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Days', yaxis_title='Incident')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
-
+        desired_data = month_data[month_data['DATE'].dt.strftime('%U') == current_week_number]
+        daily_data_count = desired_data.groupby(desired_data['DATE'].dt.to_period('D')).size().reset_index(name='data')
+        desired_data['Day'] = desired_data['DATE'].dt.strftime('%a')  # Day format in weekdays
+        unique_desired_data = desired_data.drop_duplicates(subset='Day', keep='first')
+        desired_trgt = monthly_target[monthly_target['DATE'].dt.strftime('%U') == current_week_number]
+        desired_trgt['DATE'] = desired_trgt['DATE'].dt.strftime("%Y-%m-%d")
+        daily_data_count['DATE'] = daily_data_count['DATE'].dt.strftime("%Y-%m-%d") # Convert 'DATE' to a string in both DataFrames for merging
+        merged_data = pd.merge(daily_data_count, desired_trgt, on='DATE')  # Merge on the 'DATE' column
+        merged_data['color'] = np.where(merged_data['data'] >= merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(unique_desired_data['Day'], merged_data['data'], merged_data['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='count', line=dict(color=my_color, width=30), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=unique_desired_data['Day'], y=merged_data['VALUE'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Actual')
+        st.plotly_chart(fig, use_container_width=True)
     with cl2:   # ****** Weekly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
-        weekly_data = incident_data.groupby(incident_data['DATE'].dt.to_period('W')).size()
-        weekly_target = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
-        weekly_data.index = range(1, len(weekly_data) + 1)
-        weekly_color = []
-        for i in weekly_data.index:
-            target_value = weekly_target.get(i, 0)
-            data_value = weekly_data.get(i, 0)
-            if data_value > target_value:
-                weekly_color.append("#fa2323")  # Data exceed target
-            else:
-                weekly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=weekly_data.index, y=weekly_data, marker_color=weekly_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Weeks', yaxis_title='Incident')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
-
+        weekly_data = month_data.groupby(month_data['DATE'].dt.to_period('W')).size()
+        weekly_trgt = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
+        weekly_data = pd.DataFrame({'my_data': weekly_data})
+        merged_data = pd.merge(weekly_data, weekly_trgt, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['my_data'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        weekly_data.index = weekly_data.index.astype(str)
+        weekly_data['WEEKLY_NUMBER'] = range(1, len(weekly_data) +1)
+        fig = go.Figure(data=[
+            go.Bar(
+                x=list(weekly_data['WEEKLY_NUMBER']),  # Convert range to list
+                y=merged_data['my_data'],
+                marker_color=[color for color in merged_data['color']],
+            ),
+        ])
+        fig.update_layout(
+            xaxis_title='Week',
+            yaxis_title='Total Actual',
+            title="Weekly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
     with cl3:   # ****** Monthly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Monthly Trend</center>""",unsafe_allow_html=True)
         monthly_data = df.groupby(df['DATE'].dt.to_period('M')).size()
-        monthly_target = incident_target.groupby(incident_target['DATE'].dt.to_period('M'))['VALUE'].sum()
+        monthly_target = target_data.groupby(target_data['DATE'].dt.to_period('M'))['VALUE'].sum()
+        monthly_data = pd.DataFrame({'my_data': monthly_data})
+        merged_data = pd.merge(monthly_data, monthly_target, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['my_data'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
         monthly_data.index = monthly_data.index.strftime('%b')
-        monthly_color = []
-        for i in monthly_data.index:
-            target_value = monthly_target.get(i, 0)
-            data_value = monthly_data.get(i, 0)
-            if data_value > target_value:
-                monthly_color.append("#fa2323")  # Data exceed target
-            else:
-                monthly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=monthly_data, marker_color=monthly_color)])
+        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=merged_data['my_data'], marker_color=[color for color in merged_data['color']],)])
         # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Months', yaxis_title='Incident')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
+        fig.update_layout(
+            xaxis_title='Month',
+            yaxis_title='Total Actual',
+            title="Monthly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        pass
     
-    current_month_data = incident_data
+    current_month_data = month_data
     st.subheader("Get data acording to the status")
     col1,col2,col3,col4 = st.tabs(['Clear',':red[Open Status]',':green[Close Status]',':orange[Inprocessing]'])
     with col1:
@@ -703,64 +767,111 @@ def cost_ftd():
                 human_productivity = cmp(row["TARGET"], row["ACTUAL"])
             elif row["CATEGORY"] == "PLANT AGGREGATE OEE":
                 plant_agrigate = cmp(row["TARGET"], row["ACTUAL"])
-    st.subheader(f"Status as on: {on_date}",divider="gray")
+    # st.subheader(f"Status as on: {on_date}",divider="gray")
+    st.markdown(f"""
+            <div>
+                <h3 style='position:absolute; bottom:0rem;'>Status as on: {on_date}</h3>
+            </div>
+            <hr>
+        """, unsafe_allow_html=True)
+        
     col1,col2=st.columns((1,1.7))
     with col1:  #Dynamic C letter
+
         tree = ET.parse('resources\C.svg')
         root = tree.getroot()
         current_date = datetime.date.today()
         total_days = (current_date.day)
-        row_data = fetch_data("PRODUCTIVITY AND OEE")
-        daily_data = row_data[row_data["DATE"] == f"{on_date}"]
-        filter_data = daily_data[daily_data["CATEGORY"] == "HUMAN PRODUCTIVITY"]
-        oe_target = filter_data["TARGET"]
-        oe_actual = filter_data["ACTUAL"]
-        comparison = np.where(oe_target > oe_actual, 0, 1)
-        color = 'gray'
-        if on_date.weekday() == 6: color = 'blue'
-        else:
-            for result in comparison:
-                color='red' if result == 0 else 'green'
-                # target_element.set('fill', color)
-        for i in range(1,32):
-            if i<10:
+        row_data = fetch_month_data("PRODUCTIVITY AND OEE")
+        first_day_of_month = current_date.replace(day=1)
+        days_to_add = 0
+        for i in range(1, 32):
+            if i < 10:
                 target_element = root.find(f".//*[@id='untitled-u-day{i}']")
             else:
                 target_element = root.find(f".//*[@id='untitled-u-day{i}_']")
-            # Change the color of the element
-            if i == on_date.day:
-                target_element.set('fill', color)
+            # st.write(days_to_add)
+            new_date = first_day_of_month + datetime.timedelta(days=days_to_add)
+            days_to_add += 1
+            if len(row_data) == 0:
+                if new_date.weekday() == 6:
+                    target_element.set('fill', 'blue')
+                    tree.write('c.svg')
+                else:
+                    target_element.set('fill', '#d2dbed')
+                    tree.write('c.svg')
             else:
-                target_element.set('fill', 'gray')
-            # Save the modified SVG file
-            tree.write('daily_c.svg')
+                df = row_data[row_data["DATE"] == f"{new_date}"]
+                filter_data = df[df["CATEGORY"] == "HUMAN PRODUCTIVITY"]
+                oe_target = filter_data["TARGET"]
+                oe_actual = filter_data["ACTUAL"]
+                comparison = np.where(oe_target > oe_actual, '#fa3232', '#4cf02b')
+                if new_date.weekday() == 6: target_element.set('fill', '#2f52ed')
+                else:
+                    for result in comparison:
+                        color = result
+                        target_element.set('fill', color)
+                    tree.write('daily_c.svg')
         # Display the modified SVG using Streamlit
         with open('daily_c.svg', 'r') as f:
             svg = f.read()
             b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
-            html = r'<img src="data:image/svg+xml;base64,%s" style="height:17rem;"/>' % b64
+            html = r'<img src="data:image/svg+xml;base64,%s" style="height:20rem;"/>' % b64
             st.write(f"""
                 <style>
                     .daily_c{{ font-size:1rem; margin:0rem; position:absolute; font-weight:bold;}}
                 </style>
                 <div>{html}
-                    <p class="daily_c" style='left:20rem; top:7rem; color:black;'>LEGEND:</p>
-                    <p class="daily_c" style='left:20rem; top:8.5rem; color:green;'>TARGET ACHIEVED</p>
-                    <p class="daily_c" style='left:20rem; top:10rem; color:red;'>TARGET MISSED</p>
-                    <p class="daily_c" style='left:20rem; top:11.5rem; color:blue;'>PLANT OFF</p>
+                    <p class="daily_c" style='left:20rem; top:4rem; color:black;'>LEGEND:</p>
+                    <p class="daily_c" style='left:20rem; top:6.5rem; color:#4cf02b;'>TARGET ACHIEVED</p>
+                    <p class="daily_c" style='left:20rem; top:9rem; color:#fa3232;'>TARGET MISSED</p>
+                    <p class="daily_c" style='left:20rem; top:11.5rem; color:#2f52ed;'>PLANT OFF</p>
                 </div>""", unsafe_allow_html=True)
-        # color = 'green'
-        # st.markdown(f"""
-        #     <center><div>
-        #         <svg class="svg-container" height="350" width="450">
-        #             <text x="15" y="320" font-size="20rem" font-weight="bold" font-family="Arial" fill={color}>C</text>
-        #             <text x="250" y="160" font-size="0.9rem" font-weight="bold" fill="black">LEGEND:</text>
-        #             <text x="250" y="190" font-size="0.9rem" font-weight="bold" fill="green">TARGET ACHIEVED</text>
-        #             <text x="250" y="220" font-size="0.9rem" font-weight="bold" fill="red">TARGET MISSED</text>
-        #             <text x="250" y="250" font-size="0.9rem" font-weight="bold" fill="blue">PLANT OFF</text>
-        #         </svg>
-        #     </center></div>
-        #     """, unsafe_allow_html=True)
+
+
+        # tree = ET.parse('resources\C.svg')
+        # root = tree.getroot()
+        # current_date = datetime.date.today()
+        # total_days = (current_date.day)
+        # row_data = fetch_data("PRODUCTIVITY AND OEE")
+        # daily_data = row_data[row_data["DATE"] == f"{on_date}"]
+        # filter_data = daily_data[daily_data["CATEGORY"] == "HUMAN PRODUCTIVITY"]
+        # oe_target = filter_data["TARGET"]
+        # oe_actual = filter_data["ACTUAL"]
+        # comparison = np.where(oe_target > oe_actual, 0, 1)
+        # color = 'gray'
+        # if on_date.weekday() == 6: color = 'blue'
+        # else:
+        #     for result in comparison:
+        #         color='red' if result == 0 else 'green'
+        #         # target_element.set('fill', color)
+        # for i in range(1,32):
+        #     if i<10:
+        #         target_element = root.find(f".//*[@id='untitled-u-day{i}']")
+        #     else:
+        #         target_element = root.find(f".//*[@id='untitled-u-day{i}_']")
+        #     # Change the color of the element
+        #     if i == on_date.day:
+        #         target_element.set('fill', color)
+        #     else:
+        #         target_element.set('fill', 'gray')
+        #     # Save the modified SVG file
+        #     tree.write('daily_c.svg')
+        # # Display the modified SVG using Streamlit
+        # with open('daily_c.svg', 'r') as f:
+        #     svg = f.read()
+        #     b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+        #     html = r'<img src="data:image/svg+xml;base64,%s" style="height:17rem;"/>' % b64
+        #     st.write(f"""
+        #         <style>
+        #             .daily_c{{ font-size:1rem; margin:0rem; position:absolute; font-weight:bold;}}
+        #         </style>
+        #         <div>{html}
+        #             <p class="daily_c" style='left:20rem; top:7rem; color:black;'>LEGEND:</p>
+        #             <p class="daily_c" style='left:20rem; top:8.5rem; color:green;'>TARGET ACHIEVED</p>
+        #             <p class="daily_c" style='left:20rem; top:10rem; color:red;'>TARGET MISSED</p>
+        #             <p class="daily_c" style='left:20rem; top:11.5rem; color:blue;'>PLANT OFF</p>
+        #         </div>""", unsafe_allow_html=True)
     with col2:
         # st.subheader("PRODUCTIVITY AND OEE")
         blk1,blk2=st.columns((1,1))
@@ -1423,51 +1534,110 @@ def delivery_ftd():
                 ford = cmp(row["TARGET"], row["ACTUAL"])
             pass
 
-    st.subheader(f"Status as on: {on_date}", divider="gray")
+    # st.subheader(f"Status as on: {on_date}", divider="gray")
+    st.markdown(f"""
+            <div>
+                <h3 style='position:absolute; bottom:0rem;'>Status as on: {on_date}</h3>
+            </div>
+            <hr>
+        """, unsafe_allow_html=True)
+        
     col1,col2=st.columns((1,1.9))
     with col1:  #Dynamic D letter
+
         tree = ET.parse('resources\D.svg')
         root = tree.getroot()
         current_date = datetime.date.today()
-        total_days = (current_date.day)
-        row_data = fetch_data("OTIF_CC PDI")
-        daily_data = row_data[row_data["DATE"] == f"{on_date}"]
-        filter_data = daily_data[daily_data["CATEGORY"] == "OE"]
-        oe_target = filter_data["TARGET"]
-        oe_actual = filter_data["ACTUAL"]
-        comparison = np.where(oe_target > oe_actual, 0, 1)
-        color = 'gray'
-        if on_date.weekday() == 6: color = 'blue'
-        else:
-            for result in comparison:
-                color='red' if result == 0 else 'green'
-        for i in range(1,32):
-            if i<10:
+        # total_days = (current_date.day)
+        row_data = fetch_month_data("OTIF_CC PDI")
+        first_day_of_month = current_date.replace(day=1)
+        days_to_add = 0
+        for i in range(1, 32):
+            if i < 10:
                 target_element = root.find(f".//*[@id='d-u-day{i}']")
             else:
                 target_element = root.find(f".//*[@id='d-u-day{i}_']")
-            # Change the color of the element
-            if i == on_date.day:
-                target_element.set('fill', color)
+            new_date = first_day_of_month + datetime.timedelta(days=days_to_add)
+            days_to_add += 1
+            if len(row_data) == 0:
+                if new_date.weekday() == 6:
+                    target_element.set('fill', 'blue')
+                    tree.write('d.svg')
+                else:
+                    target_element.set('fill', '#d2dbed')
+                    tree.write('d.svg')
             else:
-                target_element.set('fill', 'gray')
-            # Save the modified SVG file
-            tree.write('daily_d.svg')
+                df = row_data[row_data["DATE"] == f"{new_date}"]
+                filter_data = df[df["CATEGORY"] == "OE"]
+                oe_target = filter_data["TARGET"]
+                oe_actual = filter_data["ACTUAL"]
+                comparison = np.where(oe_target > oe_actual, '#fa3232', '#4cf02b')
+                if new_date.weekday() == 6: target_element.set('fill', '#2f52ed')
+                else:
+                    for result in comparison:
+                        # st.write(result)
+                        color = result
+                        target_element.set('fill', color)
+                    tree.write('daily_d.svg')
         # Display the modified SVG using Streamlit
         with open('daily_d.svg', 'r') as f:
             svg = f.read()
             b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
-            html = r'<img src="data:image/svg+xml;base64,%s" style="height:17rem;"/>' % b64
+            html = r'<img src="data:image/svg+xml;base64,%s" style="height:20rem;"/>' % b64
             st.write(f"""
                 <style>
                     .daily_d{{ font-size:1rem; margin:0rem; position:absolute; font-weight:bold;}}
                 </style>
                 <div>{html}
-                    <p class="daily_d" style='left:17rem; top:7rem; color:black;'>LEGEND:</p>
-                    <p class="daily_d" style='left:17rem; top:8.5rem; color:green;'>TARGET ACHIEVED</p>
-                    <p class="daily_d" style='left:17rem; top:10rem; color:red;'>TARGET MISSED</p>
-                    <p class="daily_d" style='left:17rem; top:11.5rem; color:blue;'>PLANT OFF</p>
+                    <p class="daily_d" style='left:20rem; top:4rem; color:black;'>LEGEND:</p>
+                    <p class="daily_d" style='left:20rem; top:6.5rem; color:#4cf02b;'>TARGET ACHIEVED</p>
+                    <p class="daily_d" style='left:20rem; top:9rem; color:#fa3232;'>TARGET MISSED</p>
+                    <p class="daily_d" style='left:20rem; top:11.5rem; color:#2f52ed;'>PLANT OFF</p>
                 </div>""", unsafe_allow_html=True)
+
+
+        # tree = ET.parse('resources\D.svg')
+        # root = tree.getroot()
+        # current_date = datetime.date.today()
+        # total_days = (current_date.day)
+        # row_data = fetch_data("OTIF_CC PDI")
+        # daily_data = row_data[row_data["DATE"] == f"{on_date}"]
+        # filter_data = daily_data[daily_data["CATEGORY"] == "OE"]
+        # oe_target = filter_data["TARGET"]
+        # oe_actual = filter_data["ACTUAL"]
+        # comparison = np.where(oe_target > oe_actual, 0, 1)
+        # color = 'gray'
+        # if on_date.weekday() == 6: color = 'blue'
+        # else:
+        #     for result in comparison:
+        #         color='red' if result == 0 else 'green'
+        # for i in range(1,32):
+        #     if i<10:
+        #         target_element = root.find(f".//*[@id='d-u-day{i}']")
+        #     else:
+        #         target_element = root.find(f".//*[@id='d-u-day{i}_']")
+        #     # Change the color of the element
+        #     if i == on_date.day:
+        #         target_element.set('fill', color)
+        #     else:
+        #         target_element.set('fill', 'gray')
+        #     # Save the modified SVG file
+        #     tree.write('daily_d.svg')
+        # # Display the modified SVG using Streamlit
+        # with open('daily_d.svg', 'r') as f:
+        #     svg = f.read()
+        #     b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+        #     html = r'<img src="data:image/svg+xml;base64,%s" style="height:17rem;"/>' % b64
+        #     st.write(f"""
+        #         <style>
+        #             .daily_d{{ font-size:1rem; margin:0rem; position:absolute; font-weight:bold;}}
+        #         </style>
+        #         <div>{html}
+        #             <p class="daily_d" style='left:17rem; top:7rem; color:black;'>LEGEND:</p>
+        #             <p class="daily_d" style='left:17rem; top:8.5rem; color:green;'>TARGET ACHIEVED</p>
+        #             <p class="daily_d" style='left:17rem; top:10rem; color:red;'>TARGET MISSED</p>
+        #             <p class="daily_d" style='left:17rem; top:11.5rem; color:blue;'>PLANT OFF</p>
+        #         </div>""", unsafe_allow_html=True)
 
     with col2:
         st.markdown(f"""<div style='text-align:center; font-size:1.5rem; font-weight:bold'>ON TIME IN FULL (OTIF)</div>""",unsafe_allow_html=True)
@@ -1529,15 +1699,19 @@ def delivery_ftd():
         act_sale = 0
         dlt_sb = 0
         dlt_so = 0
-        for index, row in sale_plan.iterrows():
-            if row["DATE"] == f'{on_date}':
-                bs_today = row["BUDGETED SALE"]
-                ord_book = row["ORDER BOOK"]
-                act_sale = row["ACTUAL SALE"]
-                dlt_sb = row["DELTA SB"]
-                dlt_so = row["DELTA SO"]
-        # budget_today = sale_plan[sale_plan["DATE"] == f'{on_date}']
-
+        filtered_data = sale_plan[sale_plan['DATE'] == pd.to_datetime(on_date, format='%Y-%m-%d')]
+        if not filtered_data.empty:
+            bs_today = filtered_data.iloc[0]["BUDGETED SALE"]
+            ord_book = filtered_data.iloc[0]["ORDER BOOK"]
+            act_sale = filtered_data.iloc[0]["ACTUAL SALE"]
+            dlt_sb = filtered_data.iloc[0]["DELTA SB"]
+            dlt_so = filtered_data.iloc[0]["DELTA SO"]
+        else:
+            bs_today = 0
+            ord_book = 0
+            act_sale = 0
+            dlt_sb = 0
+            dlt_so = 0
     st.markdown(f"""
         <style>
                 .float-container {{  padding: 5px;   }}
@@ -2868,7 +3042,14 @@ def critcal_customer_pdi():
 
 #************************** Quality_FTD Start **************************#
 def quality_ftd():
-    st.subheader(f"Status as on: {on_date}",divider="gray")
+    # st.subheader(f"Status as on: {on_date}",divider="gray")
+    st.markdown(f"""
+            <div>
+                <h3 style='position:absolute; bottom:0rem;'>Status as on: {on_date}</h3>
+            </div>
+            <hr>
+        """, unsafe_allow_html=True)
+        
     # st.markdown("___")
     plant_ppm = cmp(0,0)
     supplier_ppm = cmp(0,0)
@@ -2889,61 +3070,110 @@ def quality_ftd():
     with col1:  # ********** Dynamic Q Letter ********** #
         tree = ET.parse('resources\Q.svg')
         root = tree.getroot()
-        # current_date = datetime.date.today()
-        # total_days = (current_date.day)
-        row_data = fetch_data("CUSTOMER COMPLAINTS")
-        daily_data = row_data[row_data["DATE"] == f"{on_date}"]
-        color = 'gray'
-        count_problem = len(daily_data["COMPLAINT"])
-        if on_date.weekday() == 6: color = "blue"
-        else:
-            if count_problem > 1: color = 'red'
-            elif count_problem <= 1: color = 'green'
-            # else: color = '#d2dbed'
-        for i in range(1,32):
-            if i<10:
+        current_date = datetime.date.today()
+        total_days = (current_date.day)
+        row_data = fetch_month_data("CUSTOMER COMPLAINTS")
+        first_day_of_month = current_date.replace(day=1)
+        days_to_add = 0
+        for i in range(1, 32):
+            if i < 10:
                 target_element = root.find(f".//*[@id='q-u-day{i}']")
             else:
                 target_element = root.find(f".//*[@id='q-u-day{i}_']")
-            # Change the color of the element
-            if i == on_date.day:
-                target_element.set('fill', color)
+            new_date = first_day_of_month + datetime.timedelta(days=days_to_add)
+            days_to_add += 1
+            new_df = row_data[row_data["DATE"] == f"{new_date}"]
+            if len(row_data) == 0:
+                if new_date.weekday() == 6: color = "#2f52ed"
+                else:
+                    color = '#d2dbed'
             else:
-                target_element.set('fill', '#d2dbed')
-            # Save the modified SVG file
+                if new_date.weekday() == 6: color = "#2f52ed"
+                elif i <= total_days:
+                    count_problem = len(new_df["COMPLAINT"])
+                    if new_date.weekday() == 6: color = "#2f52ed"
+                    else:
+                        if count_problem > 0: color = '#fa3232'
+                        else: color = '#4cf02b'
+                else: color = "#d2dbed"
+            target_element.set('fill', color)
             tree.write('daily_q.svg')
         # Display the modified SVG using Streamlit
         with open('daily_q.svg', 'r') as f:
             svg = f.read()
             b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
-            html = r'<img src="data:image/svg+xml;base64,%s" style="height:18rem;"/>' % b64
+            html = r'<img src="data:image/svg+xml;base64,%s" style="height:20rem;"/>' % b64
             st.write(f"""
                 <style>
-                    .daily_d{{ font-size:1rem; margin:0rem; position:absolute; font-weight:bold;}}
+                    .daily_q{{ font-size:1rem; margin:0rem; position:absolute; font-weight:bold;}}
                 </style>
                 <div>{html}
-                    <p class="daily_d" style='left:17rem; top:7rem; color:black;'>LEGEND:</p>
-                    <p class="daily_d" style='left:17rem; top:8.5rem; color:green;'>TARGET ACHIEVED</p>
-                    <p class="daily_d" style='left:17rem; top:10rem; color:red;'>TARGET MISSED</p>
-                    <p class="daily_d" style='left:17rem; top:11.5rem; color:blue;'>PLANT OFF</p>
+                    <p class="daily_q" style='left:20rem; top:4rem; color:black;'>LEGEND:</p>
+                    <p class="daily_q" style='left:20rem; top:6.5rem; color:#4cf02b;'>TARGET ACHIEVED</p>
+                    <p class="daily_q" style='left:20rem; top:9rem; color:#fa3232;'>TARGET MISSED</p>
+                    <p class="daily_q" style='left:20rem; top:11.5rem; color:#2f52ed;'>PLANT OFF</p>
                 </div>""", unsafe_allow_html=True)
-        
-        
+
+
+        # tree = ET.parse('resources\Q.svg')
+        # root = tree.getroot()
+        # # current_date = datetime.date.today()
+        # # total_days = (current_date.day)
+        # row_data = fetch_data("CUSTOMER COMPLAINTS")
+        # daily_data = row_data[row_data["DATE"] == f"{on_date}"]
+        # color = 'gray'
+        # count_problem = len(daily_data["COMPLAINT"])
+        # if on_date.weekday() == 6: color = "blue"
+        # else:
+        #     if count_problem > 1: color = 'red'
+        #     elif count_problem <= 1: color = 'green'
+        #     # else: color = '#d2dbed'
+        # for i in range(1,32):
+        #     if i<10:
+        #         target_element = root.find(f".//*[@id='q-u-day{i}']")
+        #     else:
+        #         target_element = root.find(f".//*[@id='q-u-day{i}_']")
+        #     # Change the color of the element
+        #     if i == on_date.day:
+        #         target_element.set('fill', color)
+        #     else:
+        #         target_element.set('fill', '#d2dbed')
+        #     # Save the modified SVG file
+        #     tree.write('daily_q.svg')
+        # # Display the modified SVG using Streamlit
+        # with open('daily_q.svg', 'r') as f:
+        #     svg = f.read()
+        #     b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+        #     html = r'<img src="data:image/svg+xml;base64,%s" style="height:18rem;"/>' % b64
+        #     st.write(f"""
+        #         <style>
+        #             .daily_d{{ font-size:1rem; margin:0rem; position:absolute; font-weight:bold;}}
+        #         </style>
+        #         <div>{html}
+        #             <p class="daily_d" style='left:17rem; top:7rem; color:black;'>LEGEND:</p>
+        #             <p class="daily_d" style='left:17rem; top:8.5rem; color:green;'>TARGET ACHIEVED</p>
+        #             <p class="daily_d" style='left:17rem; top:10rem; color:red;'>TARGET MISSED</p>
+        #             <p class="daily_d" style='left:17rem; top:11.5rem; color:blue;'>PLANT OFF</p>
+        #         </div>""", unsafe_allow_html=True)
+
     with col2:  # **************** Customer Complaints **************** #
-        st.markdown(f"##### Today'S Customer Complaints: {len(df)}")
-        data_df = df[["COMPLAINT", "RAISE DATE", "RESPONSIBILITY", "TARGET DATE", "STATUS"]]
-        def format_status(status):
-            if status == "Open":
-                return 'background-color: #fa4d4d'
-            elif status == "Closed":
-                return 'background-color: #5fe650'
-            elif status == "Inprocess":
-                return 'background-color: #e9f76a'
-            else:
-                return ''
-        # data_df['STATUS'] = data_df['STATUS'].apply(lambda x: f'<span style="{format_status(x)}">{x}</span>')
-        data_df = data_df.style.applymap(format_status, subset=['STATUS'])
-        st.write(data_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+        if len(df) == 0:
+            pass
+        else:
+            st.markdown(f"##### Today'S Customer Complaints: {len(df)}")
+            data_df = df[["COMPLAINT", "RAISE DATE", "RESPONSIBILITY", "TARGET DATE", "STATUS"]]
+            def format_status(status):
+                if status == "Open":
+                    return 'background-color: #fa4d4d'
+                elif status == "Closed":
+                    return 'background-color: #5fe650'
+                elif status == "Inprocess":
+                    return 'background-color: #e9f76a'
+                else:
+                    return ''
+            # data_df['STATUS'] = data_df['STATUS'].apply(lambda x: f'<span style="{format_status(x)}">{x}</span>')
+            data_df = data_df.style.applymap(format_status, subset=['STATUS'])
+            st.write(data_df.to_html(escape=False, index=False), unsafe_allow_html=True)
         
         # **************** Plant PPM & Supplier PPM **************************#
         # st.markdown("""<div style='padding-top:1.5rem;'><h5>PLANT PPM & SUPPLIER PPM</h5></div>""",unsafe_allow_html=True)
@@ -3100,7 +3330,7 @@ def quality_ftd():
                      <div class="float-container">
                         <div class="float-prb" style='height:10rem; font-size:1rem;'>Particular <hr>
                         <p class="par" style='font-weight:bold;'>Firtst Time Pass % (FTP)</p>
-                        <p class="par" style='font-weight:bold;'>Reported Rejection (Percntage)</p>
+                        <p class="par" style='font-weight:bold;'>Reported Rejection (%)</p>
                         <p class="par" style='font-weight:bold;'>Reported Rejection (INR)</p>
                     </div>
                         <div class="float-prt" style='height:10rem; font-size:1rem'>Target <hr>
@@ -3174,12 +3404,12 @@ def customer_complaint():
     df = fetch_data("CUSTOMER COMPLAINTS")
     df['DATE'] = pd.to_datetime(df['DATE'])
     current_month = pd.Timestamp('now').to_period('M')
-    cmplnt_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
-    total_complaints = len(cmplnt_data)
+    month_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
+    total_complaints = len(month_data)
 
-    length = len(cmplnt_data)
+    length = len(month_data)
     max_complaint = 6
-    for index, row in cmplnt_data.iterrows():
+    for index, row in month_data.iterrows():
         issue = {
             "COMPLAINT": row["COMPLAINT"],
             "RAISE_DATE": row["RAISE DATE"],
@@ -3199,80 +3429,6 @@ def customer_complaint():
         }
         datas.append(dummy_issue)
         max_complaint = max_complaint-1
-    
-    # st.subheader("Customer Complaints Trend:")
-    complaint_target = fetch_data("SET DAILY TARGET")
-    complaint_target = complaint_target[complaint_target["CATEGORY"] == 'Customer Complaint']
-    monthly_target = complaint_target[((complaint_target["DATE"].dt.to_period("M")) == current_month)]
-    today_date = datetime.datetime.now()
-    current_week_number = today_date.strftime('%U')
-    cl1,cl2,cl3 = st.columns((1,1,1))
-    with cl1:   # ****** Daily_Data ****** #
-        st.markdown("")
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:0.7rem 0rem;'>Daily Trend</center>""",unsafe_allow_html=True)
-        desired_data = cmplnt_data[cmplnt_data['DATE'].dt.strftime('%U') == current_week_number]
-        daily_data = desired_data.groupby(desired_data['DATE'].dt.to_period('D')).size()
-        daily_data.index = daily_data.index.strftime('%b %d')
-        daily_color = []
-        for i in daily_data.index:
-            # Format the date in the same way as the monthly_target data for comparison
-            formatted_date = datetime.datetime.strptime(i, '%b %d').strftime('%b %d')
-            # Find the corresponding row in monthly_target with the same formatted date
-            matching_target = monthly_target[monthly_target['DATE'].dt.strftime('%b %d') == formatted_date]
-            if not matching_target.empty:
-                target_value = matching_target["VALUE"].values[0]
-                # print(daily_data[i], target_value)
-                if daily_data[i] > target_value:
-                    daily_color.append("#fa2323")  # Complaints exceed target
-                else:
-                    daily_color.append("#5fe650")  # Complaints meet or are below target
-            else:
-                daily_color.append("#5fe650")
-                
-        fig = go.Figure(data=[go.Bar(x=daily_data.index, y=daily_data, marker_color=daily_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Days', yaxis_title='Complaints')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
-        # st.bar_chart(daily_data, color=daily_color, height=387)
-    with cl2:   # ****** Weekly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Weekly Trend</center>""",unsafe_allow_html=True)
-        weekly_data = cmplnt_data.groupby(cmplnt_data['DATE'].dt.to_period('W')).size()
-        weekly_target = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
-        weekly_data.index = range(1, len(weekly_data) + 1)
-        weekly_color = []
-        for i in weekly_data.index:
-            target_value = weekly_target.get(i, 0)
-            data_value = weekly_data.get(i, 0)
-            if data_value > target_value:
-                weekly_color.append("#fa2323")  # Data exceed target
-            else:
-                weekly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=weekly_data.index, y=weekly_data, marker_color=weekly_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Weeks', yaxis_title='Complaints')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
-        # st.bar_chart(weekly_data, color="#ff0000")
-    with cl3:   # ****** Monthly_Data ****** #
-        st.markdown("""<center style='font-weight:bold; font-size:1.3rem; text-decoration: underline; padding:1.2rem 0rem;'>Monthly Trend</center>""",unsafe_allow_html=True)
-        monthly_data = df.groupby(df['DATE'].dt.to_period('M')).size()
-        monthly_target = complaint_target.groupby(complaint_target['DATE'].dt.to_period('M'))['VALUE'].sum()
-        monthly_data.index = monthly_data.index.strftime('%b')
-        monthly_color = []
-        for i in monthly_data.index:
-            target_value = monthly_target.get(i, 0)
-            data_value = monthly_data.get(i, 0)
-            if data_value > target_value:
-                monthly_color.append("#fa2323")  # Data exceed target
-            else:
-                monthly_color.append("#5fe650")  # Data meet or are below target
-        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=monthly_data, marker_color=monthly_color)])
-        # Customize the chart layout
-        fig.update_layout(height=387, width=430, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor='white', paper_bgcolor='lightgray', xaxis=dict(tickfont=dict(color='black')), yaxis=dict(tickfont=dict(color='black')), xaxis_title='Months', yaxis_title='Complaints')
-        # Display the chart in Streamlit
-        st.plotly_chart(fig)
-        # st.bar_chart(monthly_data, color="#ff0000", height=363)
     
     col1,col2,col3 = st.columns((1,1,1))
     with col1:
@@ -3358,6 +3514,70 @@ def customer_complaint():
         </div>
     """,unsafe_allow_html=True)
 
+    # st.subheader("Customer Complaints Trend:")
+    target_data = fetch_data("SET DAILY TARGET")
+    target_data = target_data[target_data["CATEGORY"] == 'Customer Complaint']
+    monthly_target = target_data[((target_data["DATE"].dt.to_period("M")) == current_month)]
+    today_date = datetime.datetime.now()
+    current_week_number = today_date.strftime('%U')
+    cl1,cl2,cl3 = st.columns((1,1,1))
+    with cl1:   # ****** Daily_Data ****** #
+        desired_data = month_data[month_data['DATE'].dt.strftime('%U') == current_week_number]
+        daily_data_count = desired_data.groupby(desired_data['DATE'].dt.to_period('D')).size().reset_index(name='data')
+        desired_data['Day'] = desired_data['DATE'].dt.strftime('%a')  # Day format in weekdays
+        unique_desired_data = desired_data.drop_duplicates(subset='Day', keep='first')
+        desired_trgt = monthly_target[monthly_target['DATE'].dt.strftime('%U') == current_week_number]
+        desired_trgt['DATE'] = desired_trgt['DATE'].dt.strftime("%Y-%m-%d")
+        daily_data_count['DATE'] = daily_data_count['DATE'].dt.strftime("%Y-%m-%d") # Convert 'DATE' to a string in both DataFrames for merging
+        merged_data = pd.merge(daily_data_count, desired_trgt, on='DATE')  # Merge on the 'DATE' column
+        merged_data['color'] = np.where(merged_data['data'] >= merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        fig = go.Figure()
+        # Add a trace for each target value
+        for day, actual_value, my_color in zip(unique_desired_data['Day'], merged_data['data'], merged_data['color']):
+            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='count', line=dict(color=my_color, width=30), showlegend=False))
+        # Plotting the line chart using Plotly Express
+        fig.add_trace(go.Scatter(x=unique_desired_data['Day'], y=merged_data['VALUE'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+        # Update layout
+        fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Actual')
+        st.plotly_chart(fig, use_container_width=True)
+    with cl2:   # ****** Weekly_Data ****** #
+        weekly_data = month_data.groupby(month_data['DATE'].dt.to_period('W')).size()
+        weekly_trgt = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
+        weekly_data = pd.DataFrame({'my_data': weekly_data})
+        merged_data = pd.merge(weekly_data, weekly_trgt, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['my_data'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        weekly_data.index = weekly_data.index.astype(str)
+        weekly_data['WEEKLY_NUMBER'] = range(1, len(weekly_data) +1)
+        fig = go.Figure(data=[
+            go.Bar(
+                x=list(weekly_data['WEEKLY_NUMBER']),  # Convert range to list
+                y=merged_data['my_data'],
+                marker_color=[color for color in merged_data['color']],
+            ),
+        ])
+        fig.update_layout(
+            xaxis_title='Week',
+            yaxis_title='Total Actual',
+            title="Weekly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    with cl3:   # ****** Monthly_Data ****** #
+        monthly_data = df.groupby(df['DATE'].dt.to_period('M')).size()
+        monthly_target = target_data.groupby(target_data['DATE'].dt.to_period('M'))['VALUE'].sum()
+        monthly_data = pd.DataFrame({'my_data': monthly_data})
+        merged_data = pd.merge(monthly_data, monthly_target, on='DATE')   #Merge actual and target data in single table
+        merged_data['color'] = np.where(merged_data['my_data'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+        monthly_data.index = monthly_data.index.strftime('%b')
+        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=merged_data['my_data'], marker_color=[color for color in merged_data['color']],)])
+        # Customize the chart layout
+        fig.update_layout(
+            xaxis_title='Month',
+            yaxis_title='Total Actual',
+            title="Monthly Trend",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        pass
+    
     st.subheader("Get data acording to the status")
     col1,col2,col3,col4 = st.tabs(['Clear',':red[Open Status]',':green[Close Status]',':orange[Inprocessing]'])
     with col1:
@@ -3383,6 +3603,143 @@ def plant_supplier_ppm():   # ******** Plant PPM & Supplier PPM ******** #
     # hp_data = d_data[(d_data['CATEGORY'] == 'PLANT PPM') & (d_data['DATE'].dt.to_period('M') == current_month)]
     hp_data = fetch_month_data("PLANT PPM & SUPPLIER PPM")
     # hp_data['DATE']=pd.to_datetime(hp_data["DATE"])
+
+    ppm_data = fetch_month_data("PLANT PPM & SUPPLIER PPM")
+    filter_plant_data = ppm_data[ppm_data["CATEGORY"] == "PLANT PPM"]
+    filter_supplier_data = ppm_data[ppm_data["CATEGORY"] == "SUPPLIER PPM"]
+    # st.write(filter_supplier_data)
+    total_plant_target = filter_plant_data['TARGET'].sum()    # Sum all the values in the "Value" column
+    total_plant_quantity = filter_plant_data['QUANTITY'].sum()
+    total_plant_rejection = filter_plant_data['REJECTION'].sum()
+    if total_plant_rejection == 0 and total_plant_quantity == 0:
+        total_plant_actual = 0
+    else:
+        total_plant_actual = round(((total_plant_rejection / total_plant_quantity) * 1000000), 2)
+    total_supplier_target = filter_supplier_data['TARGET'].sum()
+    total_supplier_quantity = filter_supplier_data['QUANTITY'].sum()
+    total_supplier_rejection = filter_supplier_data['REJECTION'].sum()
+    if total_plant_rejection == 0 and total_plant_quantity == 0:
+        total_supplier_actual = 0
+    else:
+        total_supplier_actual = round(((total_supplier_rejection / total_supplier_quantity) * 1000000), 2)
+
+    # st.write(f"total value is = {total_moth_target}")
+    ppm_problem = fetch_month_data("PPM PROBLEMS")
+    plant_prob = []
+    supplier_prob = []
+    plant_filter = ppm_problem[ppm_problem["CATEGORY"] == "PLANT PPM"]
+    supplier_filter = ppm_problem[ppm_problem["CATEGORY"] == "SUPPLIER PPM"]
+    plant_length = len(plant_filter)
+    supplier_length = len(supplier_filter)
+    plant_max_issues = 3
+    supplier_max_issues = 3
+    for index, row in plant_filter.iterrows():
+        issue = {
+            "PROBLEM": row["PROBLEM"],
+            "PART_LINE": row["PART_LINE"],
+            "REJ_QTY": row["REJ_QTY"]
+        }
+        plant_prob.append(issue)
+        pass
+    while plant_length < plant_max_issues:
+        dummy_issue = {
+            "PROBLEM": "N/A",
+            "PART_LINE": "N/A",
+            "REJ_QTY": "N/A"
+        }
+        plant_prob.append(dummy_issue)
+        plant_max_issues = plant_max_issues-1
+
+    for index, row in supplier_filter.iterrows():
+        issue = {
+            "PROBLEM": row["PROBLEM"],
+            "PART_LINE": row["PART_LINE"],
+            "REJ_QTY": row["REJ_QTY"]
+        }
+        supplier_prob.append(issue)
+        pass
+    while supplier_length < supplier_max_issues:
+        dummy_issue = {
+            "PROBLEM": "N/A",
+            "PART_LINE": "N/A",
+            "REJ_QTY": "N/A"
+        }
+        supplier_prob.append(dummy_issue)
+        supplier_max_issues = supplier_max_issues-1
+    cl1,cl2=st.columns((1,2))
+    with cl1:
+        st.markdown(f"""<div style='margin:1rem;font-size:1.3rem;padding-top:0.7rem;border:1px solid black;height:8rem;border-radius:0.7rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>PLANT PPM<hr style='margin:0em;'>
+                    <div style='content: ""; height:72%; display: table;display:flex;clear: both;'>
+                        <div style='float: left;width: 50%;padding: 1rem 2rem;font-size:1rem;'>Target
+                            <h6>{total_plant_target}</h6>
+                        </div>
+                        <div style='border-left: 1px solid lightgray; height: 100%;'></div>
+                        <div style='float: left;width: 50%;padding: 1rem 1.5rem;font-size:1rem;'>Actual
+                            <h6>{total_plant_actual}</h6>
+                        </div>
+                    </div>
+                    </div>""",unsafe_allow_html=True)
+        st.markdown(f"""<div style='margin:1rem;font-size:1.3rem;padding-top:0.7rem;border:1px solid black;height:8rem;border-radius:0.7rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>SUPPLIER PPM<hr style='margin:0em;'>
+                    <div style='content: center; height:72%; display: table;display:flex;clear: both;'>
+                        <div style='float: left;test-align:center;width: 50%;padding:1rem 2rem;font-size:1rem;'>Target
+                            <h6>{total_supplier_target}</h6>
+                        </div>
+                        <div style='border-left: 1px solid lightgray; height: 100%;'></div>
+                        <div style='float: right;test-align:center;width: 50%;padding:1rem 1.5rem;font-size:1rem;'>Actual
+                            <h6>{total_supplier_actual}</h6>
+                        </div>
+                    </div>
+                    </div>""",unsafe_allow_html=True)
+    with cl2:
+        st.markdown(f"""
+        <style>
+            .float-container {{ padding: 5px; }}
+            .ftp_prb {{ font-size:1rem; float: left;font-weight:bold;height:8.5rem;text-align:center;padding: 10px;border: 1px solid black;
+            }}
+            .ftp_prb p {{ width: 100%; font-size:0.8rem; height:0.5rem; text-align:center; padding: 5px;
+            }}
+        </style>
+        <div style='padding-top:0.5rem;'>
+            <div class="float-container">
+            <div class="ftp_prb" style='width:50%'>Problems<hr style='margin:0.15rem;'>
+                <p >{plant_prob[0]["PROBLEM"]}</p>
+                <p >{plant_prob[1]["PROBLEM"]}</p>
+                <p >{plant_prob[2]["PROBLEM"]}</p>
+            </div>
+            <div class="ftp_prb" style='width:25%'>Part/Line<hr style='margin:0.15rem;'>
+                <p >{plant_prob[0]["PART_LINE"]}</p>
+                <p >{plant_prob[1]["PART_LINE"]}</p>
+                <p >{plant_prob[2]["PART_LINE"]}</p>
+            </div>
+            <div class="ftp_prb" style='width:25%'>Rej Qty<hr style='margin:0.15rem;'>
+                <p >{plant_prob[0]["REJ_QTY"]}</p>
+                <p >{plant_prob[1]["REJ_QTY"]}</p>
+                <p >{plant_prob[2]["REJ_QTY"]}</p>
+            </div>
+        </div>
+        """,unsafe_allow_html=True)
+        st.markdown(f"""
+            <div style='padding-top:0.5rem;'>
+                <div class="float-container">
+                <div class="ftp_prb" style='font-weight:bold; width:50%'>Problems<hr style='margin:0.15rem;'>
+                    <p >{supplier_prob[0]["PROBLEM"]}</p>
+                    <p >{supplier_prob[1]["PROBLEM"]}</p>
+                    <p >{supplier_prob[2]["PROBLEM"]}</p>
+                </div>
+                <div class="ftp_prb" style='font-weight:bold; width:25%'>Part/Line<hr style='margin:0.15rem;'>
+                    <p >{supplier_prob[0]["PART_LINE"]}</p>
+                    <p >{supplier_prob[1]["PART_LINE"]}</p>
+                    <p >{supplier_prob[2]["PART_LINE"]}</p>
+                </div>
+                <div class="ftp_prb" style='font-weight:bold; width:25%'>Rej Qty<hr style='margin:0.15rem;'>
+                    <p >{supplier_prob[0]["REJ_QTY"]}</p>
+                    <p >{supplier_prob[1]["REJ_QTY"]}</p>
+                    <p >{supplier_prob[2]["REJ_QTY"]}</p>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+
     st.subheader("Plant PPM")
     today_date = datetime.datetime.now()
     current_week_number = today_date.strftime('%U')
@@ -3633,143 +3990,6 @@ def plant_supplier_ppm():   # ******** Plant PPM & Supplier PPM ******** #
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # bar_graph("PLANT PPM & SUPPLIER PPM")
-    
-    ppm_data = fetch_month_data("PLANT PPM & SUPPLIER PPM")
-    filter_plant_data = ppm_data[ppm_data["CATEGORY"] == "PLANT PPM"]
-    filter_supplier_data = ppm_data[ppm_data["CATEGORY"] == "SUPPLIER PPM"]
-    # st.write(filter_supplier_data)
-    total_plant_target = filter_plant_data['TARGET'].sum()    # Sum all the values in the "Value" column
-    total_plant_quantity = filter_plant_data['QUANTITY'].sum()
-    total_plant_rejection = filter_plant_data['REJECTION'].sum()
-    if total_plant_rejection == 0 and total_plant_quantity == 0:
-        total_plant_actual = 0
-    else:
-        total_plant_actual = round(((total_plant_rejection / total_plant_quantity) * 1000000), 2)
-    total_supplier_target = filter_supplier_data['TARGET'].sum()
-    total_supplier_quantity = filter_supplier_data['QUANTITY'].sum()
-    total_supplier_rejection = filter_supplier_data['REJECTION'].sum()
-    if total_plant_rejection == 0 and total_plant_quantity == 0:
-        total_supplier_actual = 0
-    else:
-        total_supplier_actual = round(((total_supplier_rejection / total_supplier_quantity) * 1000000), 2)
-    # st.write(total_supplier_actual)
-
-    # st.write(f"total value is = {total_moth_target}")
-    ppm_problem = fetch_month_data("PPM PROBLEMS")
-    plant_prob = []
-    supplier_prob = []
-    plant_filter = ppm_problem[ppm_problem["CATEGORY"] == "PLANT PPM"]
-    supplier_filter = ppm_problem[ppm_problem["CATEGORY"] == "SUPPLIER PPM"]
-    plant_length = len(plant_filter)
-    supplier_length = len(supplier_filter)
-    plant_max_issues = 3
-    supplier_max_issues = 3
-    for index, row in plant_filter.iterrows():
-        issue = {
-            "PROBLEM": row["PROBLEM"],
-            "PART_LINE": row["PART_LINE"],
-            "REJ_QTY": row["REJ_QTY"]
-        }
-        plant_prob.append(issue)
-        pass
-    while plant_length < plant_max_issues:
-        dummy_issue = {
-            "PROBLEM": "N/A",
-            "PART_LINE": "N/A",
-            "REJ_QTY": "N/A"
-        }
-        plant_prob.append(dummy_issue)
-        plant_max_issues = plant_max_issues-1
-
-    for index, row in supplier_filter.iterrows():
-        issue = {
-            "PROBLEM": row["PROBLEM"],
-            "PART_LINE": row["PART_LINE"],
-            "REJ_QTY": row["REJ_QTY"]
-        }
-        supplier_prob.append(issue)
-        pass
-    while supplier_length < supplier_max_issues:
-        dummy_issue = {
-            "PROBLEM": "N/A",
-            "PART_LINE": "N/A",
-            "REJ_QTY": "N/A"
-        }
-        supplier_prob.append(dummy_issue)
-        supplier_max_issues = supplier_max_issues-1
-    cl1,cl2=st.columns((1,2))
-    with cl1:
-        st.markdown(f"""<div style='margin:1rem;font-size:1.3rem;padding-top:0.7rem;border:1px solid black;height:8rem;border-radius:0.7rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center;'>PLANT PPM<hr style='margin:0em;'>
-                    <div style='content: ""; height:72%; display: table;display:flex;clear: both;'>
-                        <div style='float: left;width: 50%;padding: 1rem 2rem;font-size:1rem;'>Target
-                            <h6>{total_plant_target}</h6>
-                        </div>
-                        <div style='border-left: 1px solid lightgray; height: 100%;'></div>
-                        <div style='float: left;width: 50%;padding: 1rem 1.5rem;font-size:1rem;'>Actual
-                            <h6>{total_plant_actual}</h6>
-                        </div>
-                    </div>
-                    </div>""",unsafe_allow_html=True)
-        st.markdown(f"""<div style='margin:1rem;font-size:1.3rem;padding-top:0.7rem;border:1px solid black;height:8rem;border-radius:0.7rem;font-weight:bold;box-shadow:5px 5px 10px;text-align:center'>SUPPLIER PPM<hr style='margin:0em;'>
-                    <div style='content: center; height:72%; display: table;display:flex;clear: both;'>
-                        <div style='float: left;test-align:center;width: 50%;padding:1rem 2rem;font-size:1rem;'>Target
-                            <h6>{total_supplier_target}</h6>
-                        </div>
-                        <div style='border-left: 1px solid lightgray; height: 100%;'></div>
-                        <div style='float: right;test-align:center;width: 50%;padding:1rem 1.5rem;font-size:1rem;'>Actual
-                            <h6>{total_supplier_actual}</h6>
-                        </div>
-                    </div>
-                    </div>""",unsafe_allow_html=True)
-    with cl2:
-        st.markdown(f"""
-        <style>
-            .float-container {{ padding: 5px; }}
-            .ftp_prb {{ font-size:1rem; float: left;font-weight:bold;height:8.5rem;text-align:center;padding: 10px;border: 1px solid black;
-            }}
-            .ftp_prb p {{ width: 100%; font-size:0.8rem; height:0.5rem; text-align:center; padding: 5px;
-            }}
-        </style>
-        <div style='padding-top:0.5rem;'>
-            <div class="float-container">
-            <div class="ftp_prb" style='width:50%'>Problems<hr style='margin:0.15rem;'>
-                <p >{plant_prob[0]["PROBLEM"]}</p>
-                <p >{plant_prob[1]["PROBLEM"]}</p>
-                <p >{plant_prob[2]["PROBLEM"]}</p>
-            </div>
-            <div class="ftp_prb" style='width:25%'>Part/Line<hr style='margin:0.15rem;'>
-                <p >{plant_prob[0]["PART_LINE"]}</p>
-                <p >{plant_prob[1]["PART_LINE"]}</p>
-                <p >{plant_prob[2]["PART_LINE"]}</p>
-            </div>
-            <div class="ftp_prb" style='width:25%'>Rej Qty<hr style='margin:0.15rem;'>
-                <p >{plant_prob[0]["REJ_QTY"]}</p>
-                <p >{plant_prob[1]["REJ_QTY"]}</p>
-                <p >{plant_prob[2]["REJ_QTY"]}</p>
-            </div>
-        </div>
-        """,unsafe_allow_html=True)
-        st.markdown(f"""
-            <div style='padding-top:0.5rem;'>
-                <div class="float-container">
-                <div class="ftp_prb" style='font-weight:bold; width:50%'>Problems<hr style='margin:0.15rem;'>
-                    <p >{supplier_prob[0]["PROBLEM"]}</p>
-                    <p >{supplier_prob[1]["PROBLEM"]}</p>
-                    <p >{supplier_prob[2]["PROBLEM"]}</p>
-                </div>
-                <div class="ftp_prb" style='font-weight:bold; width:25%'>Part/Line<hr style='margin:0.15rem;'>
-                    <p >{supplier_prob[0]["PART_LINE"]}</p>
-                    <p >{supplier_prob[1]["PART_LINE"]}</p>
-                    <p >{supplier_prob[2]["PART_LINE"]}</p>
-                </div>
-                <div class="ftp_prb" style='font-weight:bold; width:25%'>Rej Qty<hr style='margin:0.15rem;'>
-                    <p >{supplier_prob[0]["REJ_QTY"]}</p>
-                    <p >{supplier_prob[1]["REJ_QTY"]}</p>
-                    <p >{supplier_prob[2]["REJ_QTY"]}</p>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
     pass
 
 def ftp_rejection():    # ******** FTP And Reported Rejection ******** #
@@ -4133,13 +4353,13 @@ def S_letter():
         df = row_data[row_data["DATE"] == f"{new_date}"]
         if len(row_data) == 0:
             if new_date.weekday() == 6:
-                target_element.set('fill', 'blue')
+                target_element.set('fill', '#2f52ed')
                 tree.write('s_out.svg')
             else:
-                target_element.set('fill', '#d2dbed')
+                target_element.set('fill', '#4cf02b')
                 tree.write('s_out.svg')
         elif new_date.weekday() == 6:
-                target_element.set('fill', 'blue')
+                target_element.set('fill', '#2f52ed')
                 tree.write('s_out.svg')
         else:
             for index, row in df.iterrows():
@@ -4154,13 +4374,13 @@ def S_letter():
                 if row["CATEGORY"] == "Fire":
                     colors["fire_mtd"] = True
                 
-                if new_date.weekday() == 6: color = "blue"
+                if new_date.weekday() == 6: color = "#2f52ed"
                 else:
-                    if colors["record_lost_time"] == True: color = "red"
-                    elif colors["record_accident"] == True: color = "tomato"
+                    if colors["record_lost_time"] == True: color = "#fa3232"
+                    elif colors["record_accident"] == True: color = "#ed77a4"
                     elif colors["first_aid"] == True: color = "orange"
                     elif colors["near_mis"] == True: color = "yellow"
-                    elif colors["fire_mtd"] == True: color = "blue"
+                    elif colors["fire_mtd"] == True: color = "#2f52ed"
                     else: color = "green"
                 target_element.set('fill', color)
                 tree.write('s_out.svg')
@@ -4169,15 +4389,15 @@ def S_letter():
     with open('s_out.svg', 'r') as f:
         svg = f.read()
         b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
-        html = r'<img src="data:image/svg+xml;base64,%s" style="height:10rem;"/>' % b64
+        html = r'<img src="data:image/svg+xml;base64,%s" style="height:12rem;"/>' % b64
         st.write(f"""
                  <style>
                     .s{{ font-size:0.6rem; margin:0rem; position:absolute; font-weight:bold;}}
                  </style>
                  <div>{html}
                     <p class="s" style='left:15rem; top:1rem; color:black;'>LEGEND:</p>
-                    <p class="s" style='left:15rem; top:2.5rem; color:red;'>RECORDABLE LOST TIME ENJURY</p>
-                    <p class="s" style='left:15rem; top:4rem; color:darkred;'>RECORDABLE ACCIDENT</p>
+                    <p class="s" style='left:15rem; top:2.5rem; color:#fa3232;'>RECORDABLE LOST TIME ENJURY</p>
+                    <p class="s" style='left:15rem; top:4rem; color:#ed77a4;'>RECORDABLE ACCIDENT</p>
                     <p class="s" style='left:15rem; top:5.5rem; color:orange;'>FIRST AID</p>
                     <p class="s" style='left:15rem; top:7rem; color:yellow;'>NEAR MISS</p>
                     <p class="s" style='left:15rem; top:8.5rem; color:blue;'>FIRE</p>
@@ -4219,17 +4439,17 @@ def Q_letter():
         days_to_add += 1
         df = row_data[row_data["DATE"] == f"{new_date}"]
         if len(row_data) == 0:
-            if new_date.weekday() == 6: color = "blue"
+            if new_date.weekday() == 6: color = "#2f52ed"
             else:
                 color = '#d2dbed'
         else:
-            if new_date.weekday() == 6: color = "blue"
+            if new_date.weekday() == 6: color = "#2f52ed"
             elif i <= total_days:
                 count_problem = len(df["COMPLAINT"])
-                if new_date.weekday() == 6: color = "blue"
+                if new_date.weekday() == 6: color = "#2f52ed"
                 else:
-                    if count_problem > 1: color = 'red'
-                    elif count_problem <= 1: color = 'green'
+                    if count_problem > 0: color = '#fa3232'
+                    else: color = '#4cf02b'
             else: color = "#d2dbed"
         target_element.set('fill', color)
         tree.write('q.svg')
@@ -4237,16 +4457,16 @@ def Q_letter():
     with open('q.svg', 'r') as f:
         svg = f.read()
         b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
-        html = r'<img src="data:image/svg+xml;base64,%s" style="height:10rem;"/>' % b64
+        html = r'<img src="data:image/svg+xml;base64,%s" style="height:12rem;"/>' % b64
         st.write(f"""
             <style>
                 .s{{ font-size:0.6rem; margin:0rem; position:absolute; font-weight:bold;}}
             </style>
             <div>{html}
                 <p class="s" style='left:15rem; top:1rem; color:black;'>LEGEND:</p>
-                <p class="s" style='left:15rem; top:2.5rem; color:green;'>TARGET ACHIEVED</p>
-                <p class="s" style='left:15rem; top:4rem; color:red;'>TARGET MISSED</p>
-                <p class="s" style='left:15rem; top:5.5rem; color:blue;'>PLANT OFF</p>
+                <p class="s" style='left:15rem; top:2.5rem; color:#4cf02b;'>TARGET ACHIEVED</p>
+                <p class="s" style='left:15rem; top:4rem; color:#fa3232;'>TARGET MISSED</p>
+                <p class="s" style='left:15rem; top:5.5rem; color:#2f52ed;'>PLANT OFF</p>
             </div>""", unsafe_allow_html=True)
         
         df = fetch_data("CUSTOMER COMPLAINTS")
@@ -4281,7 +4501,7 @@ def D_letter():
         days_to_add += 1
         if len(row_data) == 0:
             if new_date.weekday() == 6:
-                target_element.set('fill', 'blue')
+                target_element.set('fill', '#2f52ed')
                 tree.write('d.svg')
             else:
                 target_element.set('fill', '#d2dbed')
@@ -4291,8 +4511,8 @@ def D_letter():
             filter_data = df[df["CATEGORY"] == "OE"]
             oe_target = filter_data["TARGET"]
             oe_actual = filter_data["ACTUAL"]
-            comparison = np.where(oe_target > oe_actual, 'red', 'green')
-            if new_date.weekday() == 6: target_element.set('fill', "blue")
+            comparison = np.where(oe_target > oe_actual, '#fa3232', '#4cf02b')
+            if new_date.weekday() == 6: target_element.set('fill', "#2f52ed")
             else:
                 for result in comparison:
                     # st.write(result)
@@ -4303,16 +4523,16 @@ def D_letter():
     with open('d.svg', 'r') as f:
         svg = f.read()
         b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
-        html = r'<img src="data:image/svg+xml;base64,%s" style="height:10rem;"/>' % b64
+        html = r'<img src="data:image/svg+xml;base64,%s" style="height:12rem;"/>' % b64
         st.write(f"""
             <style>
                 .s{{ font-size:0.6rem; margin:0rem; position:absolute; font-weight:bold;}}
             </style>
             <div>{html}
                 <p class="s" style='left:15rem; top:1rem; color:black;'>LEGEND:</p>
-                <p class="s" style='left:15rem; top:2.5rem; color:green;'>TARGET ACHIEVED</p>
-                <p class="s" style='left:15rem; top:4rem; color:red;'>TARGET MISSED</p>
-                <p class="s" style='left:15rem; top:5.5rem; color:blue;'>PLANT OFF</p>
+                <p class="s" style='left:15rem; top:2.5rem; color:#4cf02b;'>TARGET ACHIEVED</p>
+                <p class="s" style='left:15rem; top:4rem; color:#fa3232;'>TARGET MISSED</p>
+                <p class="s" style='left:15rem; top:5.5rem; color:#2f52ed;'>PLANT OFF</p>
             </div>""", unsafe_allow_html=True)
         
         df = fetch_data("OTIF_CC PDI")
@@ -4353,7 +4573,7 @@ def C_letter():
         days_to_add += 1
         if len(row_data) == 0:
             if new_date.weekday() == 6:
-                target_element.set('fill', 'blue')
+                target_element.set('fill', '#2f52ed')
                 tree.write('c.svg')
             else:
                 target_element.set('fill', '#d2dbed')
@@ -4363,8 +4583,8 @@ def C_letter():
             filter_data = df[df["CATEGORY"] == "HUMAN PRODUCTIVITY"]
             oe_target = filter_data["TARGET"]
             oe_actual = filter_data["ACTUAL"]
-            comparison = np.where(oe_target > oe_actual, 'red', 'green')
-            if new_date.weekday() == 6: target_element.set('fill', "blue")
+            comparison = np.where(oe_target > oe_actual, '#fa3232', '#4cf02b')
+            if new_date.weekday() == 6: target_element.set('fill', "#2f52ed")
             else:
                 for result in comparison:
                     color = result
@@ -4374,16 +4594,16 @@ def C_letter():
     with open('c.svg', 'r') as f:
         svg = f.read()
         b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
-        html = r'<img src="data:image/svg+xml;base64,%s" style="height:10rem;"/>' % b64
+        html = r'<img src="data:image/svg+xml;base64,%s" style="height:12rem;"/>' % b64
         st.write(f"""
             <style>
                 .s{{ font-size:0.6rem; margin:0rem; position:absolute; font-weight:bold;}}
             </style>
             <div>{html}
                 <p class="s" style='left:15rem; top:1rem; color:black;'>LEGEND:</p>
-                <p class="s" style='left:15rem; top:2.5rem; color:green;'>TARGET ACHIEVED</p>
-                <p class="s" style='left:15rem; top:4rem; color:red;'>TARGET MISSED</p>
-                <p class="s" style='left:15rem; top:5.5rem; color:blue;'>PLANT OFF</p>
+                <p class="s" style='left:15rem; top:2.5rem; color:#4cf02b;'>TARGET ACHIEVED</p>
+                <p class="s" style='left:15rem; top:4rem; color:#fa3232;'>TARGET MISSED</p>
+                <p class="s" style='left:15rem; top:5.5rem; color:#2f52ed;'>PLANT OFF</p>
             </div>""", unsafe_allow_html=True)
         
         df = fetch_data("PRODUCTIVITY AND OEE")
@@ -4412,10 +4632,14 @@ def personal_gap():
     pg_data = fetch_data("PERSONAL GAP")
     pg_data['DATE'] = pd.to_datetime(pg_data['DATE'])
     current_month = pd.Timestamp('now').to_period('M')
+    current_day = pd.Timestamp('now').to_period('D')
     month_pg = pg_data[((pg_data['DATE'].dt.to_period('M')) == current_month)]
-    total_req = month_pg["PLANNED MANPOWER"].sum()
-    total_avail = month_pg["ACTUAL MANPOWER"].sum()
-    total_pg = round(((total_req-total_avail)/total_req)*100, 2)
+    daily_data = pg_data[((pg_data['DATE'].dt.to_period('D')) == current_day)]
+    required = daily_data.iloc[0]['PLANNED MANPOWER']
+    available = daily_data.iloc[0]['ACTUAL MANPOWER']
+    # total_req = month_pg["PLANNED MANPOWER"].sum()
+    # total_avail = month_pg["ACTUAL MANPOWER"].sum()
+    total_pg = round(((required-available)/required)*100, 2)
     days = datetime.date.today()
     total_days_in_month = calendar.monthrange(days.year, days.month)[1]
     # st.write(total_pg)
@@ -4457,10 +4681,10 @@ def personal_gap():
         cr11,cr12,cr3=st.columns((1,1,1))
         with cr11:
             st.markdown(f"""<div class="custom">Planned Manpower Required
-                        <h4>{total_req}</h4></div>""",unsafe_allow_html=True)
+                        <h4>{required}</h4></div>""",unsafe_allow_html=True)
         with cr12:
             st.markdown(f"""<div class="custom">Actual Manpower Available
-                        <h4>{total_avail}</h4></div>""",unsafe_allow_html=True)
+                        <h4>{available}</h4></div>""",unsafe_allow_html=True)
         with cr3:
             st.markdown(f"""<div class="custom">Personal Gap (PG)
                         <h4>{total_pg}</h4></div>""",unsafe_allow_html=True)

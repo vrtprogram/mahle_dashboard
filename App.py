@@ -25,11 +25,10 @@ def main():
             st.markdown(
                 """<center><div style='background-color:lightgray; width:95%; font-weight:bold;'>Safety</div></center>""", unsafe_allow_html=True)
             S_letter()  # Dynamic svg letter
-
             st.markdown("""
                     <style>
                     .horizental1 {
-                        border-bottom: 5px dashed grey;
+                        border-bottom: 3px dashed grey;
                         position: relative;
                         top: 0rem;
                         margin: 1rem 0rem;
@@ -42,13 +41,12 @@ def main():
             st.markdown(
                 """<center><div style='background-color:lightgray; width:95%; font-weight:bold;'>Delivery</div></center>""", unsafe_allow_html=True)
             D_letter()  # Dynamic svg letter
-
             with col_img_B:
                 st.markdown("""
                     <style>
                     .vertical2 {
-                      border-left: 5px dashed grey;
-                      height: 31rem;
+                      border-left: 3px dashed grey;
+                      height: 37rem;
                       position:absolute;
                       left: 50%;
                     }
@@ -56,17 +54,15 @@ def main():
                     <div class="vertical2">
                     </div>
                 """, unsafe_allow_html=True)
-
             with col_img_C:
                 color = "orange"
                 st.markdown(
                     """<center><div style='background-color:lightgray; width:95%; font-weight:bold;'>Quality</div></center>""", unsafe_allow_html=True)
                 Q_letter()  # Dynamic svg letter
-
                 st.markdown("""
                     <style>
                     .horizental1 {
-                        border-bottom: 5px dashed grey;
+                        border-bottom: 3px dashed grey;
                         position: relative;
                         top: 0rem;
                         margin: 1rem 0rem;
@@ -79,27 +75,26 @@ def main():
                 st.markdown(
                     """<center><div style='background-color:lightgray; width:95%; font-weight:bold;'>Cost</div></center>""", unsafe_allow_html=True)
                 C_letter()  # Dynamic svg letter
-
     with col2:
         st.markdown("""
              <style>
         .vertical1 {
-          border-left: 5px dashed grey;
-          height: 30rem;
+          border-left: 3px dashed grey;
+          height: 35rem;
           position:absolute;
           left: 50%;
         }
       </style>
         <div class="vertical1">
         </div>
-        
         """, unsafe_allow_html=True)
     # For menu
     with col3:
+        st.markdown("""<center><div style='background-color:lightgray; position:relative; bottom:1rem; border-radius:5px; width:100%; font-weight:bold;'>KPI Information</div></center>""", unsafe_allow_html=True)
         st.markdown("""<style>
                         .st-emotion-cache-115gedg:nth-child(1){ bottom:1rem; }
-                        .st-emotion-cache-115gedg:nth-child(2){ bottom:4rem; }
-                        .st-emotion-cache-1r6slb0:nth-child(1){ bottom:2.5rem; }
+                        .st-emotion-cache-115gedg:nth-child(2){ bottom:2rem; }
+                        .st-emotion-cache-1r6slb0:nth-child(1){ bottom:0.5rem; }
                         .st-emotion-cache-ocqkz7{ height:3rem }
                     </style>""", unsafe_allow_html=True)
         col_icon, col_selector = st.columns((1, 2))

@@ -15,103 +15,96 @@ import time
 
 layout("this page only for testing")
 
+
 def main():
-    df = fetch_data("INCIDENCES DETAILS")
-    df['DATE'] = pd.to_datetime(df['DATE'])
-    current_month = pd.Timestamp('now').to_period('M')
-    month_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
-    target_data = fetch_data("SET DAILY TARGET")
-    target_data = target_data[target_data["CATEGORY"] == 'Incident details']  #filter data acording category
-    monthly_target = target_data[((target_data["DATE"].dt.to_period("M")) == current_month)]
-    st.subheader("FTP Trend")
-    today_date = datetime.now()
-    current_week_number = today_date.strftime('%U') #check current week number
-    cl1,cl2,cl3 = st.columns((1,1,1))
-    with cl1:   # ****** Daily_Data ****** #
-        desired_data = month_data[month_data['DATE'].dt.strftime('%U') == current_week_number]
-        daily_data = desired_data.groupby(desired_data['DATE'].dt.to_period('D')).size()
-        desired_data['Day'] = desired_data['DATE'].dt.strftime('%a')    #Day format in weekdays
-        desired_trgt = monthly_target[monthly_target['DATE'].dt.strftime('%U') == current_week_number] #Target data of current week
-        st.write(daily_data)
-        desired_trgt['DATE'] = desired_trgt['DATE'].dt.strftime("%Y-%m-%d")
-        daily_data = pd.DataFrame({'data':daily_data})
-        st.write(daily_data, desired_trgt)
-        merged_data = pd.merge(daily_data, desired_trgt, on='DATE')   #Merge actual and target data in single table
-        st.write(merged_data)
-        merged_data['color'] = np.where(merged_data['PSP COMPETENCY'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
-        # st.write(merged_data)
-        fig = go.Figure()
-        # Add a trace for each target value
-        for day, actual_value, my_color in zip(merged_data['Day'], merged_data['PSP COMPETENCY'], merged_data['color']):
-            fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='BD Time', line=dict(color=my_color, width=30), showlegend=False))
-        # Plotting the line chart using Plotly Express
-        fig.add_trace(go.Scatter(x=merged_data['Day'], y=merged_data['VALUE'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
-        # Update layout
-        fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Actual')
-        st.plotly_chart(fig, use_container_width=True)
-    with cl2:   # ****** Weekly_Data ****** #
-        P_raised = month_data.groupby(month_data['DATE'].dt.to_period('W'))['PROBLEM RAISED'].sum()
-        P_solved = month_data.groupby(month_data['DATE'].dt.to_period('W'))['PROBLEM SOLVED'].sum()
-        weekly_trgt = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum() / 6
-        weekly_data = round((P_solved / P_raised) * 100, 2)
-        weekly_data = pd.DataFrame({'psp_data': weekly_data})
-        merged_data = pd.merge(weekly_data, weekly_trgt, on='DATE')   #Merge actual and target data in single table
-        merged_data['color'] = np.where(merged_data['psp_data'] < merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
-        weekly_data.index = weekly_data.index.astype(str)
-        weekly_data['WEEKLY_NUMBER'] = range(1, len(weekly_data) +1)
-        fig = go.Figure(data=[
-            go.Bar(
-                x=list(weekly_data['WEEKLY_NUMBER']),  # Convert range to list
-                y=merged_data['psp_data'],
-                marker_color=[color for color in merged_data['color']],
-            ),
-        ])
-        fig.update_layout(
-            xaxis_title='Week',
-            yaxis_title='Total Actual',
-            title="Weekly Trend",
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    with cl3:   # ****** Monthly_Data ****** #
-        P_raised = df.groupby(df['DATE'].dt.to_period('M'))['PROBLEM RAISED'].sum()
-        P_solved = df.groupby(df['DATE'].dt.to_period('M'))['PROBLEM SOLVED'].sum()
-        monthly_target = monthly_target.groupby(monthly_target['DATE'].dt.to_period('M'))['VALUE'].sum() / 30
-        monthly_data = round((P_solved / P_raised) * 100, 2)
-        monthly_data = pd.DataFrame({'psp_data': monthly_data})
-        merged_data = pd.merge(monthly_data, monthly_target, on='DATE')   #Merge actual and target data in single table
-        merged_data['color'] = np.where(merged_data['psp_data'] < merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
-        monthly_data.index = monthly_data.index.strftime('%b')
-        fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=merged_data['psp_data'], marker_color=[color for color in merged_data['color']],)])
-        # Customize the chart layout
-        fig.update_layout(
-            xaxis_title='Month',
-            yaxis_title='Total Actual',
-            title="Monthly Trend",
-        )
-        st.plotly_chart(fig, use_container_width=True)
+    st.subheader("Get Specipic Data!")
+    my_data = 0
+    c1,c2,c3 = st.columns((1,1,1))
+    with c1:
+        starting_date = st.date_input("Select Start Date")
+    with c2:
+        end_date = st.date_input("Select End Date")
+    with c3:
+        category = st.selectbox("Category", options=[' ','INCIDENCES DETAILS', 'UNSAFE PRACTICES TRACKING', 'PRODUCTIVITY AND OEE', 'MACHINE BREAKDOWN TIME', 'OTIF_CC PDI'])
+    if category == ' ':
         pass
-    # data_table1 = {'date': ['2023-11-01', '2023-11-02', '2023-11-03', '2023-11-04', '2023-11-05', '2023-11-06', '2023-11-07'],
-    #            'value': [10, 20, 15, 25, 30, 18, 22]}
+    else:
+        my_data = data_filter_between(category, starting_date, end_date)
+    if not my_data.empty:
+        st.table(my_data)
+    else:
+        pass
 
-    # data_table2 = {'date': ['2023-11-01', '2023-11-02', '2023-11-03', '2023-11-04', '2023-11-05', '2023-11-06', '2023-11-07'],
-    #             'value': [10, 21, 15, 25, 30, 19, 22]}
+    # df = fetch_data("UNSAFE PRACTICES TRACKING")
+    # df['DATE'] = pd.to_datetime(df['DATE'])
+    # current_month = pd.Timestamp('now').to_period('M')
+    # month_data = df[((df['DATE'].dt.to_period('M')) == current_month)]
+    # target_data = fetch_data("SET DAILY TARGET")
+    # target_data = target_data[target_data["CATEGORY"] == 'Incident Practices']  #filter data acording category
+    # monthly_target = target_data[((target_data["DATE"].dt.to_period("M")) == current_month)]
+    # st.subheader("FTP Trend")
+    today_date = datetime.now()
+    # current_week_number = today_date.strftime('%U') #check current week number
+    # cl1,cl2,cl3 = st.columns((1,1,1))
+    # with cl1:   # ****** Daily_Data ****** #
+    #     desired_data = month_data[month_data['DATE'].dt.strftime('%U') == current_week_number]
+    #     daily_data_count = desired_data.groupby(desired_data['DATE'].dt.to_period('D')).size().reset_index(name='data')
+    #     desired_data['Day'] = desired_data['DATE'].dt.strftime('%a')  # Day format in weekdays
+    #     unique_desired_data = desired_data.drop_duplicates(subset='Day', keep='first')
+    #     desired_trgt = monthly_target[monthly_target['DATE'].dt.strftime('%U') == current_week_number]
+    #     desired_trgt['DATE'] = desired_trgt['DATE'].dt.strftime("%Y-%m-%d")
+    #     daily_data_count['DATE'] = daily_data_count['DATE'].dt.strftime("%Y-%m-%d") # Convert 'DATE' to a string in both DataFrames for merging
+    #     merged_data = pd.merge(daily_data_count, desired_trgt, on='DATE')  # Merge on the 'DATE' column
+    #     merged_data['color'] = np.where(merged_data['data'] >= merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+    #     fig = go.Figure()
+    #     # Add a trace for each target value
+    #     for day, actual_value, my_color in zip(unique_desired_data['Day'], merged_data['data'], merged_data['color']):
+    #         fig.add_trace(go.Scatter(x=[day, day], y=[0, actual_value], mode='lines', name='count', line=dict(color=my_color, width=30), showlegend=False))
+    #     # Plotting the line chart using Plotly Express
+    #     fig.add_trace(go.Scatter(x=unique_desired_data['Day'], y=merged_data['VALUE'], line=dict(color='black', width=1), mode='lines+markers', name='Target'))
+    #     # Update layout
+    #     fig.update_layout(title='Daily Trend', xaxis_title='Day', yaxis_title='Actual')
+    #     st.plotly_chart(fig, use_container_width=True)
+    # with cl2:   # ****** Weekly_Data ****** #
+    #     weekly_data = month_data.groupby(month_data['DATE'].dt.to_period('W')).size()
+    #     weekly_trgt = monthly_target.groupby(monthly_target['DATE'].dt.to_period('W'))['VALUE'].sum()
+    #     weekly_data = pd.DataFrame({'my_data': weekly_data})
+    #     merged_data = pd.merge(weekly_data, weekly_trgt, on='DATE')   #Merge actual and target data in single table
+    #     merged_data['color'] = np.where(merged_data['my_data'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+    #     weekly_data.index = weekly_data.index.astype(str)
+    #     weekly_data['WEEKLY_NUMBER'] = range(1, len(weekly_data) +1)
+    #     fig = go.Figure(data=[
+    #         go.Bar(
+    #             x=list(weekly_data['WEEKLY_NUMBER']),  # Convert range to list
+    #             y=merged_data['my_data'],
+    #             marker_color=[color for color in merged_data['color']],
+    #         ),
+    #     ])
+    #     fig.update_layout(
+    #         xaxis_title='Week',
+    #         yaxis_title='Total Actual',
+    #         title="Weekly Trend",
+    #     )
+    #     st.plotly_chart(fig, use_container_width=True)
+    # with cl3:   # ****** Monthly_Data ****** #
+    #     monthly_data = df.groupby(df['DATE'].dt.to_period('M')).size()
+    #     monthly_target = target_data.groupby(target_data['DATE'].dt.to_period('M'))['VALUE'].sum()
+    #     monthly_data = pd.DataFrame({'my_data': monthly_data})
+    #     merged_data = pd.merge(monthly_data, monthly_target, on='DATE')   #Merge actual and target data in single table
+    #     merged_data['color'] = np.where(merged_data['my_data'] > merged_data['VALUE'], "#fa2323", "#5fe650")   #Compare data and add color in table acordingly
+    #     monthly_data.index = monthly_data.index.strftime('%b')
+    #     fig = go.Figure(data=[go.Bar(x=monthly_data.index, y=merged_data['my_data'], marker_color=[color for color in merged_data['color']],)])
+    #     # Customize the chart layout
+    #     fig.update_layout(
+    #         xaxis_title='Month',
+    #         yaxis_title='Total Actual',
+    #         title="Monthly Trend",
+    #     )
+    #     st.plotly_chart(fig, use_container_width=True)
+    #     pass
 
-    # table1 = pd.DataFrame(data_table1)
-    # table2 = pd.DataFrame(data_table2)
-
-    # # Merge the tables on the 'date' column
-    # merged_data = pd.merge(table1, table2, on='date', suffixes=('_table1', '_table2'))
-
-    # # Add a column for comparison
-    # merged_data['comparison_result'] = ['Match' if x == y else 'Mismatch' for x, y in zip(merged_data['value_table1'], merged_data['value_table2'])]
-
-    # # Streamlit app
-    # st.title('Data Comparison')
-
-    # # Display the merged data
-    # st.write('Merged Data:')
-    # st.write(merged_data)
-
+    completion_date = today_date - timedelta(days=today_date.timetuple().tm_yday)
+    st.write(completion_date)
 
     # Initialize messages list in session_state
     # if "messages" not in st.session_state:

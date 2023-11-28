@@ -561,9 +561,8 @@ if authentication_status:
     if selected == 'Safety':
         c_opt = ['', 'Unsafe Incidences', 'Unsafe Practices Tracking']
         slct = st.selectbox('Safety', options=c_opt)
-
         if slct == 'Unsafe Practices Tracking':
-            with sqlite3.connect('database/safety.db') as conn:
+            with sqlite3.connect('database/main_database.db') as conn:
                 cur = conn.cursor()
                 # PROVIDING OPTIONS
                 option = ["", 'UPDATE', 'LOG']
@@ -574,20 +573,24 @@ if authentication_status:
                     if no_event > 0:
                         with st.form("safety"):
                             date = st.date_input("Date")
-                            col1, col2, col3 = st.columns((1, 1, 1))
+                            col1, col2, col3,col4, col5 = st.columns((1, 1, 1, 1, 1))
                             for i in range(0, no_event):
                                 with col1:
                                     st.text_input("Observation", key=f"event{i}")
                                 with col2:
-                                    st.text_input("Location", key=f"location{i}")
+                                    st.selectbox("Value Stream", options=["Air", "Oil Filter", "Fuel", "Engine Periferal"], key=f"location{i}")
                                 with col3:
-                                    st.selectbox("Current Status", options=['Open', 'Closed'], key=f"status{i}")
+                                    st.text_input("Responsibility", key=f"responsibility{i}")
+                                with col4:
+                                    st.date_input("Target Date", key=f"target_date{i}")
+                                    # st.text_input("Location", key=f"location{i}")
+                                with col5:
+                                    st.selectbox("Current Status", options=['Open', 'Closed','Inprocess'], key=f"status{i}")
                             submit = st.form_submit_button("Save")
                             if submit:
                                 for i in range(0, no_event):
                                     cur.execute(
-                                        f"""INSERT INTO 'UNSAFE PRACTICES TRACKING' VALUES ("{datetime.now()}","{date}","{st.session_state[f'event{i}']},",
-                                        "{st.session_state[f'location{i}']}","{st.session_state[f'status{i}']}")""")
+                                        f"""INSERT INTO "UNSAFE PRACTICES TRACKING" VALUES ("{datetime.now()}","{date}","{st.session_state[f'event{i}']}","{st.session_state[f'location{i}']}","{st.session_state[f'responsibility{i}']}","{st.session_state[f'target_date{i}']}","{st.session_state[f'status{i}']}")""")
                                     conn.commit()
                                 st.success("Datas Saved")
                 if selected == 'UPDATE':
@@ -602,7 +605,7 @@ if authentication_status:
                             try:
                                 for _, row in edited_df.iterrows():
                                     cur.execute(
-                                        f'UPDATE SAFETY SET STATUS = "{row["STATUS"]}",EVENT = "{row["EVENT"]}",LOCATION = "{row["LOCATION"]}"  WHERE TIME_STAMP = "{row["TIME_STAMP"]}" ')
+                                        f'UPDATE "UNSAFE PRACTICES TRACKING" SET EVENT = "{row["EVENT"]}","VALUE STREAM" = "{row["VALUE STREAM"]}","RESPONSIBILITY" = "{row["RESPONSIBILITY"]}","TARGET DATE" = "{row["TARGET DATE"]}" STATUS = "{row["STATUS"]}"  WHERE TIME_STAMP = "{row["TIME_STAMP"]}" ')
                                     conn.commit()
                                 st.success("Data Updated")
                             except Exception as e:
@@ -610,7 +613,7 @@ if authentication_status:
                         time_stamp = st.text_input("Enter The Time Stamp To Delete")
                         button = st.button("Delete Entry")
                         if button:
-                            cur.execute(f"DELETE FROM Safety WHERE Time_Stamp = '{time_stamp}'")
+                            cur.execute(f"DELETE FROM 'UNSAFE PRACTICES TRACKING' WHERE Time_Stamp = '{time_stamp}'")
                             conn.commit()
                             st.success("Success ")
                             st.rerun()
@@ -635,7 +638,8 @@ if authentication_status:
                                 with col2:
                                     st.text_input("Observations", key=f"event{i}")
                                 with col3:
-                                    st.text_input("Value_stream", key=f"value_stream{i}")
+                                    st.selectbox("Value Stream", options=["Air", "Oil Filter", "Fuel", "Engine Periferal"], key=f"value_stream{i}")
+                                    # st.text_input("Value_stream", key=f"value_stream{i}")
                                 with col4:
                                     st.text_input("Action", key=f"action{i}")
                                 with col5:
@@ -697,7 +701,7 @@ if authentication_status:
                                     with col1:
                                         st.text_input("Complaint", key=f"complaint{i}")
                                     with col2:
-                                        st.date_input("Close_date", key=f"close_date{i}")
+                                        st.date_input("Target Date", key=f"close_date{i}")
                                     with col3:
                                         st.text_input("Responsibility", key=f"responsibility{i}")
                                     with col4:
